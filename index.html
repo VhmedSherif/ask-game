@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Ask & Reveal • Live AI ✨</title>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <style>
+    :root {
+      --bg1: #0f172a;
+      --bg2: #1e1b4b;
+      --card: rgba(30, 41, 59, 0.82);
+      --border: rgba(255, 255, 255, 0.13);
+      --accent: #ec4899;
+      --accent2: #8b5cf6;
+      --gold: #f59e0b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --success: #10b981;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+
+    body {
+      min-height: 100dvh;
+      background: radial-gradient(circle at top right, #3b0f4c, var(--bg1) 52%, var(--bg2));
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 14px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 490px;
+      background: var(--card);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: 0 22px 55px rgba(0, 0, 0, 0.5);
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .logo-wrap { display: flex; flex-direction: column; }
+
+    .logo {
+      font-size: 1.32rem;
+      font-weight: 800;
+      background: linear-gradient(90deg, #f472b6, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .sub-logo {
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.4px;
+    }
+
+    .status-badge {
+      font-size: 0.76rem;
+      padding: 5px 11px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--gold);
+    }
+    .dot.online { background: var(--success); box-shadow: 0 0 8px var(--success); }
+
+    .screen { display: none; animation: fadeIn 0.28s ease; }
+    .screen.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    label { display: block; font-size: 0.84rem; color: var(--muted); margin-bottom: 6px; }
+
+    input, textarea {
+      width: 100%;
+      padding: 13px 15px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.68);
+      color: var(--text);
+      font-size: 0.96rem;
+      outline: none;
+      transition: border 0.2s;
+      margin-bottom: 13px;
+    }
+
+    input:focus, textarea:focus { border-color: #f472b6; }
+    textarea { resize: none; min-height: 88px; }
+
+    .btn {
+      width: 100%;
+      padding: 13px 16px;
+      border: none;
+      border-radius: 14px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: white;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      cursor: pointer;
+      transition: transform 0.14s, opacity 0.2s;
+      margin-bottom: 10px;
+    }
+
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-surprise {
+      background: linear-gradient(135deg, #f59e0b, #ec4899);
+    }
+
+    .action-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      margin-bottom: 10px;
+    }
+    .action-row .btn { margin-bottom: 0; font-size: 0.88rem; padding: 11px 10px; }
+
+    .divider {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.78rem;
+      margin: 12px 0;
+    }
+
+    .room-box {
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px dashed rgba(244, 114, 182, 0.5);
+      border-radius: 16px;
+      padding: 16px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .room-code {
+      font-size: 2rem;
+      font-weight: 900;
+      letter-spacing: 6px;
+      color: #f472b6;
+      margin: 6px 0 10px;
+    }
+
+    .vibes {
+      display: flex;
+      gap: 7px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      scrollbar-width: none;
+    }
+    .vibes::-webkit-scrollbar { display: none; }
+
+    .vibe-chip {
+      white-space: nowrap;
+      padding: 7px 13px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .vibe-chip.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white;
+      border-color: transparent;
+    }
+
+    .vibe-chip.surprise-chip.active {
+      background: linear-gradient(135deg, #f59e0b, #ec4899);
+    }
+
+    .question-card {
+      background: linear-gradient(145deg, rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.16));
+      border: 1px solid rgba(244, 114, 182, 0.35);
+      border-radius: 18px;
+      padding: 20px 18px;
+      text-align: center;
+      margin-bottom: 14px;
+      min-height: 122px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      transition: opacity 0.25s;
+    }
+
+    .question-card.loading {
+      opacity: 0.65;
+      animation: pulseCard 1.2s infinite ease-in-out;
+    }
+
+    @keyframes pulseCard {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(0.985); }
+    }
+
+    .q-category {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 1.3px;
+      color: #f472b6;
+      margin-bottom: 8px;
+      font-weight: 800;
+    }
+
+    .q-text {
+      font-size: 1.1rem;
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
+    .partner-state {
+      font-size: 0.82rem;
+      text-align: center;
+      color: #cbd5e1;
+      margin-bottom: 11px;
+      padding: 8px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .ready-banner {
+      display: none;
+      font-size: 0.83rem;
+      text-align: center;
+      padding: 9px 12px;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      background: rgba(16, 185, 129, 0.16);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #a7f3d0;
+      font-weight: 600;
+    }
+
+    .reveal-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 11px;
+      margin-bottom: 12px;
+    }
+
+    .ans-card {
+      background: rgba(15, 23, 42, 0.78);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      animation: popIn 0.35s ease;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.93); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .ans-author {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #f472b6;
+      margin-bottom: 5px;
+    }
+    .ans-card.partner .ans-author { color: #a78bfa; }
+    .ans-body { font-size: 0.95rem; line-height: 1.45; white-space: pre-wrap; }
+
+    .chat-box {
+      background: rgba(15, 23, 42, 0.58);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px;
+      margin-top: 12px;
+    }
+
+    .chat-title {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .reactions { display: flex; gap: 5px; }
+    .react-btn {
+      background: rgba(255,255,255,0.08);
+      border: none;
+      border-radius: 8px;
+      padding: 4px 7px;
+      cursor: pointer;
+      font-size: 0.92rem;
+    }
+
+    .chat-messages {
+      max-height: 170px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 9px;
+      font-size: 0.88rem;
+    }
+
+    .chat-round-sep {
+      align-self: center;
+      font-size: 0.7rem;
+      color: var(--muted);
+      opacity: 0.75;
+      margin: 4px 0;
+    }
+
+    .msg {
+      padding: 7px 11px;
+      border-radius: 12px;
+      max-width: 85%;
+      line-height: 1.35;
+      word-wrap: break-word;
+    }
+
+    .msg.me {
+      align-self: flex-end;
+      background: rgba(236, 72, 153, 0.25);
+      border: 1px solid rgba(236, 72, 153, 0.35);
+    }
+
+    .msg.them {
+      align-self: flex-start;
+      background: rgba(139, 92, 246, 0.25);
+      border: 1px solid rgba(139, 92, 246, 0.35);
+    }
+
+    .chat-input-row { display: flex; gap: 8px; }
+    .chat-input-row input { margin-bottom: 0; padding: 10px 12px; font-size: 0.88rem; }
+    .chat-input-row button { width: auto; margin-bottom: 0; padding: 10px 15px; }
+
+    .custom-q-box { display: none; margin-bottom: 12px; }
+    .custom-q-box.open { display: flex; gap: 8px; }
+    .custom-q-box input { margin-bottom: 0; }
+    .custom-q-box button { width: auto; margin-bottom: 0; white-space: nowrap; }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(16, 185, 129, 0.95);
+      color: white;
+      padding: 8px 18px;
+      border-radius: 999px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      display: none;
+      z-index: 99;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <div class="logo-wrap">
+      <div class="logo">Ask & Reveal ✨</div>
+      <div class="sub-logo">Live AI • Co-Created Edition ❤️</div>
+    </div>
+    <div class="status-badge">
+      <span class="dot" id="statusDot"></span>
+      <span id="statusText">Lobby</span>
+    </div>
+  </div>
+
+  <!-- LOBBY SCREEN -->
+  <div class="screen active" id="lobbyScreen">
+    <label>Your Name</label>
+    <input type="text" id="playerName" placeholder="Type your name..." maxlength="20" />
+
+    <button class="btn" id="createBtn" onclick="createRoom()">Create Private Room ✨</button>
+
+    <div class="divider">— OR JOIN WITH CODE —</div>
+
+    <label>Room Code</label>
+    <input type="text" id="joinCodeInput" placeholder="4-LETTER CODE" maxlength="6" style="text-transform: uppercase; letter-spacing: 3px; text-align: center; font-weight: 700;" />
+    <button class="btn btn-secondary" id="joinBtn" onclick="joinRoom()">Join Room 🔗</button>
+  </div>
+
+  <!-- WAITING SCREEN -->
+  <div class="screen" id="waitScreen">
+    <div class="room-box">
+      <div style="font-size: 0.84rem; color: var(--muted);">Send this direct link or code:</div>
+      <div class="room-code" id="displayRoomCode">----</div>
+      <button class="btn btn-secondary" onclick="copyInviteLink()" style="margin-bottom: 0;">Copy Direct Invite Link 🔗</button>
+    </div>
+    <p style="text-align: center; color: var(--muted); font-size: 0.88rem;">Waiting for your partner to join... ⏳</p>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div class="screen" id="gameScreen">
+    <div class="vibes" id="vibeBar">
+      <div class="vibe-chip surprise-chip active" data-vibe="surprise" onclick="selectVibe('surprise', this)">🎲 Surprise Me</div>
+      <div class="vibe-chip" data-vibe="us_future" onclick="selectVibe('us_future', this)">❤️ Us & Future</div>
+      <div class="vibe-chip" data-vibe="playful" onclick="selectVibe('playful', this)">😄 Playful</div>
+      <div class="vibe-chip" data-vibe="wyr" onclick="selectVibe('wyr', this)">🤔 Would You Rather</div>
+      <div class="vibe-chip" data-vibe="culture" onclick="selectVibe('culture', this)">🌎 Life & Roots</div>
+      <div class="vibe-chip" data-vibe="deep" onclick="selectVibe('deep', this)">🌙 Deep</div>
+      <div class="vibe-chip" onclick="toggleCustomQ()">✍️ Custom</div>
+    </div>
+
+    <div class="custom-q-box" id="customQBox">
+      <input type="text" id="customQInput" placeholder="Write your own secret question..." />
+      <button class="btn" onclick="sendCustomQuestion()">Ask</button>
+    </div>
+
+    <div class="question-card" id="questionCard">
+      <div class="q-category" id="qCategory">✨ AI GENERATING...</div>
+      <div class="q-text" id="qText">Crafting your first mystery question...</div>
+    </div>
+
+    <!-- ANSWERING PHASE -->
+    <div id="answerPhase">
+      <div class="partner-state" id="partnerState">Both answers stay hidden until you both lock in 💭</div>
+      <textarea id="myAnswerInput" placeholder="Type your secret answer here..."></textarea>
+      <button class="btn" id="lockBtn" onclick="lockAnswer()">Lock In Answer 🔒</button>
+
+      <div class="action-row">
+        <button class="btn btn-secondary" id="switchBtn" onclick="switchCard()">Switch Card 🔀</button>
+        <button class="btn btn-surprise" id="surpriseBtn" onclick="triggerSurpriseRound()">Surprise Round 🎲</button>
+      </div>
+    </div>
+
+    <!-- REVEAL PHASE -->
+    <div id="revealPhase" style="display: none;">
+      <div class="reveal-grid">
+        <div class="ans-card">
+          <div class="ans-author" id="myCardTitle">You</div>
+          <div class="ans-body" id="myCardBody"></div>
+        </div>
+        <div class="ans-card partner">
+          <div class="ans-author" id="partnerCardTitle">Partner</div>
+          <div class="ans-body" id="partnerCardBody"></div>
+        </div>
+      </div>
+
+      <div class="ready-banner" id="readyBanner"></div>
+
+      <div class="action-row">
+        <button class="btn" id="nextCardBtn" onclick="nextAIQuestion()">Ready for Next ➡️</button>
+        <button class="btn btn-surprise" id="nextSurpriseBtn" onclick="triggerSurpriseRound()">Surprise Next 🎲</button>
+      </div>
+    </div>
+
+    <!-- PERSISTENT LIVE CHAT (NEVER AUTO-CLEARS) -->
+    <div class="chat-box">
+      <div class="chat-title">
+        <span>Live Chat 💬 (stays saved across cards)</span>
+        <div class="reactions">
+          <button class="react-btn" onclick="sendChat('❤️')">❤️</button>
+          <button class="react-btn" onclick="sendChat('😂')">😂</button>
+          <button class="react-btn" onclick="sendChat('🥺')">🥺</button>
+          <button class="react-btn" onclick="sendChat('👀')">👀</button>
+        </div>
+      </div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chatInput" placeholder="Write a comment or reply here... 😄" onkeydown="if(event.key==='Enter') sendChat()" />
+        <button class="btn" onclick="sendChat()">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Copied!</div>
+
+<script>
+  const BACKUP_DECK = {
+    us_future: [
+      "What was your very first impression of me when we started talking, and what surprised you later?",
+      "What is your favorite little moment or conversation we have shared together so far?",
+      "If we had a completely free weekend together in the same city tomorrow, what is the first thing you would want us to do?",
+      "What is a fun activity or trip you would love for the two of us to experience together in the future?",
+      "What was the exact moment you realized you really enjoyed talking to me?",
+      "If we cooked dinner together in our own kitchen one day, who is chef and who is sous-chef?",
+      "What is a small everyday routine you look forward to sharing together one day?",
+      "If we opened a tiny cozy cafe or shop together in the future, what would we serve?",
+      "What is one place in your country you cannot wait to show me in person one day?",
+      "When you think about us a few years from now, what makes you smile the most?",
+      "What is a new hobby or skill you would love for both of us to learn together?",
+      "If we were picking out furniture for our future living room, what is one must-have item?"
+    ],
+    playful: [
+      "If we got locked inside a giant supermarket overnight, which aisle are we heading to first?",
+      "What is a harmless habit you have that would definitely make me laugh if I saw it every day?",
+      "Between the two of us, who would get lost first without GPS and refuse to admit it?",
+      "What is one snack or comfort food that instantly fixes your mood after a long shift?",
+      "If we were characters in an adventure movie, what role would each of us end up playing?",
+      "Who between us is more likely to stay up way too late saying 'just five more minutes'?",
+      "What is the funniest kitchen disaster you have ever witnessed or caused?",
+      "If I handed you the aux cord on a long road trip, what are we listening to first?",
+      "Between us, who is the bigger tea addict and how many cups count as 'too many'?",
+      "What is a silly childhood belief you held onto for way too long?",
+      "If you had to survive a whole week eating only three foods, what are you picking?"
+    ],
+    wyr: [
+      "Would you rather go on a spontaneous late-night food run together or stay in watching movies while it rains?",
+      "Would you rather know every language in the world fluently or be able to cook any dish perfectly on the first try?",
+      "Would you rather travel somewhere scenic and quiet in the mountains or explore a lively coastal city together?",
+      "Would you rather have an endless supply of your favorite tea or a personal chef for a year?",
+      "Would you rather wake up early to watch the sunrise together or stay up talking until dawn?",
+      "Would you rather live in a cozy house with a big garden or a high-floor apartment with a city view?",
+      "Would you rather road-trip across a whole country together or hop between historic cities by train?",
+      "Would you rather never have to do dishes again or never have to fold laundry again?",
+      "Would you rather receive a handwritten letter or a surprise care package full of your favorite things?"
+    ],
+    culture: [
+      "What is one dish from your family's kitchen that I absolutely have to try one day?",
+      "What is a favorite tradition or vibe in your family home that you want to carry into your future?",
+      "What is a word or affectionate phrase in your language that you love the meaning of?",
+      "What does an ideal, peaceful Friday or weekend look like in your home?",
+      "What is your favorite memory from Ramadan or Eid that always brings you warmth?",
+      "What is a book, story, or movie that genuinely stayed with you long after finishing it?",
+      "What is a childhood snack from where you grew up that you still love today?",
+      "What is one thing about your culture's hospitality that you are really proud of?",
+      "How do you usually like to unwind and recharge when you finally get home?"
+    ],
+    deep: [
+      "After a really long, exhausting day, what small gesture makes you feel the most cared for?",
+      "What is something about our dynamic that makes you feel comfortable being yourself?",
+      "What are you looking forward to most when you picture a peaceful, happy home in the future?",
+      "What is a quality in me that makes you feel safe and genuinely appreciated?",
+      "What is a dua or wish close to your heart that you find yourself making often?",
+      "How do you know when someone truly understands you without you having to over-explain?",
+      "What is one life lesson you learned the hard way that made you wiser and kinder?",
+      "When you feel stressed or overwhelmed, do you prefer quiet company, advice, or distraction?",
+      "What does building a strong, mercy-filled marriage mean to you at its core?",
+      "What is something small someone once did for you that you never forgot?"
+    ]
+  };
+
+  const VIBE_LABELS = {
+    surprise: "🎲 MYSTERY SURPRISE ROUND",
+    us_future: "❤️ US, MEMORIES & FUTURE",
+    playful: "😄 PLAYFUL & FUN",
+    wyr: "🤔 WOULD YOU RATHER",
+    culture: "🌎 LIFE & ROOTS",
+    deep: "🌙 DEEP & REAL"
+  };
+
+  let peer = null;
+  let conn = null;
+  let isHost = false;
+  let myName = "Me";
+  let partnerName = "Partner";
+  let roomCode = "";
+  let currentVibe = "surprise";
+  let myAnswer = null;
+  let partnerAnswer = null;
+  let isGenerating = false;
+  let usedQuestions = new Set();
+  let reqSeq = 0;
+
+  // Mutual readiness state so cards NEVER switch before both finish reading
+  let iAmReadyNext = false;
+  let partnerReadyNext = false;
+  let pendingNextVibe = "surprise";
+  let pendingNextMode = "next";
+  let pendingCustomText = null;
+
+  const peerConfig = {
+    config: {
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
+        { urls: "stun:stun.cloudflare.com:3478" }
+      ]
+    }
+  };
+
+  window.addEventListener("DOMContentLoaded", () => {
+    const params = new URLSearchParams(window.location.search);
+    const urlRoom = params.get("room");
+    if (urlRoom) {
+      document.getElementById("joinCodeInput").value = urlRoom.toUpperCase();
+    }
+  });
+
+  function isInRevealPhase() {
+    return myAnswer !== null && partnerAnswer !== null;
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.style.display = "block";
+    clearTimeout(window._toastTimer);
+    window._toastTimer = setTimeout(() => { t.style.display = "none"; }, 2600);
+  }
+
+  function switchScreen(id) {
+    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+  }
+
+  function randomCode() {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let out = "";
+    for (let i = 0; i < 4; i++) out += chars[Math.floor(Math.random() * chars.length)];
+    return out;
+  }
+
+  function createRoom() {
+    myName = document.getElementById("playerName").value.trim() || "Player 1";
+    isHost = true;
+    roomCode = randomCode();
+    const peerId = "askreveal-ai-" + roomCode.toLowerCase();
+
+    document.getElementById("createBtn").disabled = true;
+    peer = new Peer(peerId, peerConfig);
+
+    peer.on("open", () => {
+      document.getElementById("displayRoomCode").textContent = roomCode;
+      document.getElementById("statusText").textContent = "Waiting...";
+      switchScreen("waitScreen");
+    });
+
+    peer.on("connection", (incomingConn) => {
+      conn = incomingConn;
+      setupConnection();
+    });
+
+    peer.on("error", (err) => {
+      if (err.type === "unavailable-id") {
+        peer.destroy();
+        createRoom();
+      } else {
+        alert("Connection error: " + err.type);
+        document.getElementById("createBtn").disabled = false;
+      }
+    });
+  }
+
+  function joinRoom() {
+    myName = document.getElementById("playerName").value.trim() || "Player 2";
+    const code = document.getElementById("joinCodeInput").value.trim().toUpperCase();
+    if (code.length < 4) return alert("Please enter the 4-letter room code!");
+
+    isHost = false;
+    roomCode = code;
+    document.getElementById("joinBtn").disabled = true;
+    document.getElementById("statusText").textContent = "Connecting...";
+
+    peer = new Peer(undefined, peerConfig);
+    peer.on("open", () => {
+      conn = peer.connect("askreveal-ai-" + roomCode.toLowerCase(), { reliable: true });
+      setupConnection();
+    });
+
+    peer.on("error", () => {
+      alert("Could not find that room! Check the code and make sure your partner has the room open.");
+      document.getElementById("joinBtn").disabled = false;
+      document.getElementById("statusText").textContent = "Lobby";
+    });
+  }
+
+  function setupConnection() {
+    conn.on("open", () => {
+      conn.send({ type: "hello", name: myName });
+      document.getElementById("statusDot").classList.add("online");
+      switchScreen("gameScreen");
+      if (isHost) {
+        setTimeout(() => requestLiveQuestion("surprise", "first"), 400);
+      }
+    });
+
+    conn.on("data", (data) => {
+      if (data.type === "hello") {
+        partnerName = data.name;
+        document.getElementById("statusText").textContent = "With " + partnerName + " ❤️";
+        updatePartnerState();
+      } else if (data.type === "generating") {
+        setGeneratingUI(data.vibe, data.reasonText);
+      } else if (data.type === "question") {
+        highlightVibeChip(data.vibe);
+        applyNewQuestion(data.vibeLabel, data.text);
+        if (data.toast) showToast(data.toast);
+      } else if (data.type === "locked") {
+        partnerAnswer = data.answer;
+        checkReveal();
+      } else if (data.type === "ready_next") {
+        partnerReadyNext = true;
+        pendingNextVibe = data.vibe || currentVibe;
+        pendingNextMode = data.mode || "next";
+        pendingCustomText = data.customText || null;
+
+        if (iAmReadyNext) {
+          iAmReadyNext = false;
+          partnerReadyNext = false;
+          if (isHost) {
+            executePendingNext();
+          }
+        } else {
+          updateReadyBannerUI();
+          showToast("✨ " + partnerName + " is ready for the next card!");
+        }
+      } else if (data.type === "chat") {
+        appendChat(partnerName, data.msg, false);
+      }
+    });
+
+    conn.on("close", () => {
+      document.getElementById("statusDot").classList.remove("online");
+      document.getElementById("statusText").textContent = "Disconnected";
+      showToast(partnerName + " disconnected");
+    });
+  }
+
+  function copyInviteLink() {
+    const url = window.location.origin + window.location.pathname + "?room=" + roomCode;
+    navigator.clipboard.writeText(url).then(() => {
+      showToast("Direct link copied! Send it to her ❤️");
+    });
+  }
+
+  function highlightVibeChip(vibe) {
+    currentVibe = vibe;
+    document.querySelectorAll(".vibe-chip").forEach(c => {
+      c.classList.toggle("active", c.dataset.vibe === vibe);
+    });
+  }
+
+  function proposeNextRound(vibe, mode, customText = null) {
+    if (isGenerating) return;
+    iAmReadyNext = true;
+    pendingNextVibe = vibe;
+    pendingNextMode = mode;
+    if (customText) pendingCustomText = customText;
+
+    if (conn && conn.open) {
+      conn.send({
+        type: "ready_next",
+        vibe: vibe,
+        mode: mode,
+        customText: pendingCustomText
+      });
+    }
+
+    if (partnerReadyNext) {
+      iAmReadyNext = false;
+      partnerReadyNext = false;
+      executePendingNext();
+    } else {
+      updateReadyBannerUI();
+    }
+  }
+
+  function executePendingNext() {
+    if (pendingCustomText) {
+      const txt = pendingCustomText;
+      pendingCustomText = null;
+      const label = "✍️ CUSTOM QUESTION";
+      applyNewQuestion(label, txt);
+      if (conn && conn.open) {
+        conn.send({ type: "question", vibe: currentVibe, vibeLabel: label, text: txt });
+      }
+    } else {
+      requestLiveQuestion(pendingNextVibe, pendingNextMode);
+    }
+  }
+
+  function updateReadyBannerUI() {
+    const banner = document.getElementById("readyBanner");
+    const nextBtn = document.getElementById("nextCardBtn");
+    const surpBtn = document.getElementById("nextSurpriseBtn");
+
+    if (iAmReadyNext && !partnerReadyNext) {
+      banner.style.display = "block";
+      banner.textContent = "⏳ Waiting for " + partnerName + " to finish reading & tap Next (1/2)...";
+      nextBtn.disabled = true;
+      surpBtn.disabled = true;
+      nextBtn.textContent = "Ready ✅ (1/2)";
+    } else if (!iAmReadyNext && partnerReadyNext) {
+      banner.style.display = "block";
+      banner.textContent = "✨ " + partnerName + " is ready! Take your time reading, then tap Next (1/2) ❤️";
+      nextBtn.disabled = false;
+      surpBtn.disabled = false;
+      nextBtn.textContent = "Confirm Next ✅ (2/2)";
+    } else {
+      banner.style.display = "none";
+      nextBtn.disabled = false;
+      surpBtn.disabled = false;
+      nextBtn.textContent = "Ready for Next ➡️";
+    }
+  }
+
+  function selectVibe(vibe, el) {
+    if (isGenerating) return;
+    document.getElementById("customQBox").classList.remove("open");
+    highlightVibeChip(vibe);
+    if (isInRevealPhase()) {
+      proposeNextRound(vibe, "vibe");
+    } else {
+      requestLiveQuestion(vibe, "vibe");
+    }
+  }
+
+  function switchCard() {
+    if (isGenerating) return;
+    requestLiveQuestion(currentVibe, "switch");
+  }
+
+  function triggerSurpriseRound() {
+    if (isGenerating) return;
+    highlightVibeChip("surprise");
+    if (isInRevealPhase()) {
+      proposeNextRound("surprise", "surprise");
+    } else {
+      requestLiveQuestion("surprise", "surprise");
+    }
+  }
+
+  function nextAIQuestion() {
+    if (isGenerating) return;
+    proposeNextRound(currentVibe, "next");
+  }
+
+  function setGeneratingUI(vibe, reasonText) {
+    isGenerating = true;
+    iAmReadyNext = false;
+    partnerReadyNext = false;
+    const card = document.getElementById("questionCard");
+    card.classList.add("loading");
+    document.getElementById("qCategory").textContent = "✨ LIVE AI GENERATING...";
+    document.getElementById("qText").textContent = reasonText || "Picking a fresh question neither of you has seen...";
+    document.getElementById("lockBtn").disabled = true;
+    document.getElementById("switchBtn").disabled = true;
+    document.getElementById("surpriseBtn").disabled = true;
+    document.getElementById("nextCardBtn").disabled = true;
+    document.getElementById("nextSurpriseBtn").disabled = true;
+  }
+
+  async function requestLiveQuestion(vibe, mode) {
+    const seq = ++reqSeq;
+    let reasonText = "✨ AI is crafting a brand-new question...";
+    let toastMsg = "";
+
+    if (mode === "switch") {
+      reasonText = "🔀 Switching card... AI is picking a new one!";
+      toastMsg = "🔀 " + myName + " switched the card!";
+    } else if (mode === "surprise") {
+      reasonText = "🎲 Mystery round! AI is choosing a secret topic...";
+      toastMsg = "🎲 Surprise Round!";
+    }
+
+    setGeneratingUI(vibe, reasonText);
+    if (conn && conn.open) {
+      conn.send({ type: "generating", vibe: vibe, reasonText: reasonText });
+    }
+
+    const questionText = await fetchAIQuestion(vibe);
+    if (seq !== reqSeq) return;
+
+    usedQuestions.add(questionText);
+    const label = VIBE_LABELS[vibe] || "✨ AI QUESTION";
+    applyNewQuestion(label, questionText);
+    if (toastMsg) showToast(toastMsg);
+
+    if (conn && conn.open) {
+      conn.send({
+        type: "question",
+        vibe: vibe,
+        vibeLabel: label,
+        text: questionText,
+        toast: toastMsg
+      });
+    }
+  }
+
+  async function fetchAIQuestion(vibe) {
+    const allThemes = ["us_future", "playful", "wyr", "culture", "deep"];
+    const actualTheme = vibe === "surprise"
+      ? allThemes[Math.floor(Math.random() * allThemes.length)]
+      : vibe;
+
+    const prompts = {
+      us_future: "Write ONE warm, sweet, respectful question for a couple getting closer: ask either about their first impressions of each other, a favorite moment talking together so far, or something fun/meaningful they would love to do together in the future.",
+      playful: "Write ONE lighthearted, funny, playful scenario or everyday question for two people who really like each other that sparks laughter and cute banter.",
+      wyr: "Write ONE creative, fun 'Would you rather...' question for a couple getting to know each other's personalities and lifestyle.",
+      culture: "Write ONE warm, engaging question about family traditions, favorite home-cooked meals, languages, daily routines, or hometown memories.",
+      deep: "Write ONE thoughtful, emotionally warm question about feeling appreciated, values, communication, or what brings peace and happiness in a relationship."
+    };
+
+    const recent = Array.from(usedQuestions).slice(-10).join(" || ");
+    const seed = Math.floor(Math.random() * 1000000);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5500);
+
+    try {
+      const res = await fetch("https://text.pollinations.ai/openai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: "openai",
+          seed: seed,
+          messages: [
+            {
+              role: "system",
+              content: "You generate ONE concise card-game question (under 24 words) for a couple. Keep it completely clean, warm, wholesome, and natural. Output ONLY the question itself—no quotes, no numbering, no intro."
+            },
+            {
+              role: "user",
+              content: `${prompts[actualTheme] || prompts.playful}\nSeed: ${seed}. Avoid repeating: ${recent || "none"}`
+            }
+          ]
+        })
+      });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error("Bad status");
+      const json = await res.json();
+      let out = (json?.choices?.[0]?.message?.content || "").trim();
+      out = out.replace(/^["'“”*-\d.)\s]+|["'“”]+$/g, "").trim();
+      if (out.length > 12 && out.length < 220 && !usedQuestions.has(out)) {
+        return out;
+      }
+      throw new Error("Fallback needed");
+    } catch (err) {
+      clearTimeout(timer);
+      return pickBackupQuestion(actualTheme);
+    }
+  }
+
+  function pickBackupQuestion(theme) {
+    const pool = BACKUP_DECK[theme] || BACKUP_DECK.us_future;
+    const unused = pool.filter(q => !usedQuestions.has(q));
+    const list = unused.length > 0 ? unused : pool;
+    return list[Math.floor(Math.random() * list.length)];
+  }
+
+  function toggleCustomQ() {
+    document.getElementById("customQBox").classList.toggle("open");
+  }
+
+  function sendCustomQuestion() {
+    const txt = document.getElementById("customQInput").value.trim();
+    if (!txt) return;
+    document.getElementById("customQInput").value = "";
+    document.getElementById("customQBox").classList.remove("open");
+
+    if (isInRevealPhase()) {
+      proposeNextRound(currentVibe, "custom", txt);
+    } else {
+      const label = "✍️ ASKED BY " + myName.toUpperCase();
+      applyNewQuestion(label, txt);
+      if (conn && conn.open) {
+        conn.send({ type: "question", vibe: currentVibe, vibeLabel: label, text: txt });
+      }
+    }
+  }
+
+  function addChatSeparatorIfNeeded() {
+    const box = document.getElementById("chatMessages");
+    if (box.children.length > 0 && !box.lastElementChild.classList.contains("chat-round-sep")) {
+      const sep = document.createElement("div");
+      sep.className = "chat-round-sep";
+      sep.textContent = "— New Question —";
+      box.appendChild(sep);
+      box.scrollTop = box.scrollHeight;
+    }
+  }
+
+  function applyNewQuestion(vibeLabel, text) {
+    isGenerating = false;
+    myAnswer = null;
+    partnerAnswer = null;
+    iAmReadyNext = false;
+    partnerReadyNext = false;
+    pendingCustomText = null;
+
+    addChatSeparatorIfNeeded();
+
+    document.getElementById("questionCard").classList.remove("loading");
+    document.getElementById("qCategory").textContent = vibeLabel;
+    document.getElementById("qText").textContent = text;
+    document.getElementById("myAnswerInput").value = "";
+    document.getElementById("myAnswerInput").disabled = false;
+    document.getElementById("lockBtn").disabled = false;
+    document.getElementById("switchBtn").disabled = false;
+    document.getElementById("surpriseBtn").disabled = false;
+    document.getElementById("lockBtn").textContent = "Lock In Answer 🔒";
+    document.getElementById("answerPhase").style.display = "block";
+    document.getElementById("revealPhase").style.display = "none";
+    updateReadyBannerUI();
+    updatePartnerState();
+  }
+
+  function lockAnswer() {
+    const val = document.getElementById("myAnswerInput").value.trim();
+    if (!val) return showToast("Write your answer first!");
+    myAnswer = val;
+    document.getElementById("myAnswerInput").disabled = true;
+    document.getElementById("lockBtn").disabled = true;
+    document.getElementById("lockBtn").textContent = "Locked In! Waiting... ⏳";
+    if (conn && conn.open) {
+      conn.send({ type: "locked", answer: myAnswer });
+    }
+    checkReveal();
+  }
+
+  function updatePartnerState() {
+    const el = document.getElementById("partnerState");
+    if (partnerAnswer && !myAnswer) {
+      el.textContent = "🔒 " + partnerName + " locked in! Waiting for your answer...";
+      el.style.color = "#f472b6";
+    } else if (myAnswer && !partnerAnswer) {
+      el.textContent = "✅ Locked in! Waiting for " + partnerName + " to finish...";
+      el.style.color = "#10b981";
+    } else {
+      el.textContent = "Both answers stay hidden until you both lock in 💭";
+      el.style.color = "#cbd5e1";
+    }
+  }
+
+  function checkReveal() {
+    updatePartnerState();
+    if (myAnswer !== null && partnerAnswer !== null) {
+      iAmReadyNext = false;
+      partnerReadyNext = false;
+      updateReadyBannerUI();
+      document.getElementById("answerPhase").style.display = "none";
+      document.getElementById("revealPhase").style.display = "block";
+      document.getElementById("myCardTitle").textContent = myName + " (You)";
+      document.getElementById("myCardBody").textContent = myAnswer;
+      document.getElementById("partnerCardTitle").textContent = partnerName;
+      document.getElementById("partnerCardBody").textContent = partnerAnswer;
+    }
+  }
+
+  function sendChat(preset) {
+    const input = document.getElementById("chatInput");
+    const msg = preset || input.value.trim();
+    if (!msg) return;
+    if (!preset) input.value = "";
+    appendChat("You", msg, true);
+    if (conn && conn.open) {
+      conn.send({ type: "chat", msg: msg });
+    }
+  }
+
+  function appendChat(sender, text, isMe) {
+    const box = document.getElementById("chatMessages");
+    const div = document.createElement("div");
+    div.className = "msg " + (isMe ? "me" : "them");
+    div.textContent = (isMe ? "" : sender + ": ") + text;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+</script>
+</body>
+</html>
