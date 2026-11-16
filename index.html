@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -47,13 +48,15 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
       margin-bottom: 16px;
     }
 
     .logo-wrap { display: flex; flex-direction: column; }
 
     .logo {
-      font-size: 1.32rem;
+      font-size: 1.28rem;
       font-weight: 800;
       background: linear-gradient(90deg, #f472b6, #c084fc);
       -webkit-background-clip: text;
@@ -66,8 +69,29 @@
       letter-spacing: 0.4px;
     }
 
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .room-pill {
+      font-size: 0.73rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: rgba(244, 114, 182, 0.14);
+      border: 1px solid rgba(244, 114, 182, 0.4);
+      color: #f9a8d4;
+      cursor: pointer;
+      transition: transform 0.14s, background 0.2s;
+    }
+    .room-pill:active { transform: scale(0.96); }
+
     .status-badge {
-      font-size: 0.76rem;
+      font-size: 0.75rem;
       padding: 5px 11px;
       border-radius: 999px;
       background: rgba(255, 255, 255, 0.08);
@@ -77,6 +101,20 @@
       align-items: center;
       gap: 6px;
     }
+
+    .leave-btn {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: rgba(239, 68, 68, 0.14);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #fca5a5;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.14s;
+    }
+    .leave-btn:hover { background: rgba(239, 68, 68, 0.25); }
+    .leave-btn:active { transform: scale(0.96); }
 
     .dot {
       width: 8px;
@@ -384,6 +422,11 @@
       display: none;
       z-index: 99;
       box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+      text-align: center;
+      max-width: 92vw;
+    }
+    .toast.error {
+      background: rgba(236, 72, 153, 0.96);
     }
   </style>
 </head>
@@ -393,25 +436,29 @@
   <div class="header">
     <div class="logo-wrap">
       <div class="logo">Ask & Reveal ✨</div>
-      <div class="sub-logo">v2.2 Live Creative AI ❤️</div>
+      <div class="sub-logo">v2.3 Auto-Save & Reconnect ❤️</div>
     </div>
-    <div class="status-badge">
-      <span class="dot" id="statusDot"></span>
-      <span id="statusText">Lobby</span>
+    <div class="header-actions">
+      <button type="button" class="room-pill" id="headerRoomBtn" onclick="copyInviteLink()" title="Copy invite link" style="display: none;">🔗 ----</button>
+      <div class="status-badge">
+        <span class="dot" id="statusDot"></span>
+        <span id="statusText">Lobby</span>
+      </div>
+      <button type="button" class="leave-btn" id="leaveRoomBtn" onclick="leaveRoom()" title="Leave room" style="display: none;">Leave ✕</button>
     </div>
   </div>
 
   <!-- LOBBY SCREEN -->
   <div class="screen active" id="lobbyScreen">
     <label>Your Name</label>
-    <input type="text" id="playerName" placeholder="Type your name..." maxlength="20" />
+    <input type="text" id="playerName" placeholder="Type your name..." maxlength="20" oninput="savePlayerNamePref()" />
 
     <button class="btn" id="createBtn" onclick="createRoom()">Create Private Room ✨</button>
 
     <div class="divider">— OR JOIN WITH CODE —</div>
 
     <label>Room Code</label>
-    <input type="text" id="joinCodeInput" placeholder="4-LETTER CODE" maxlength="6" style="text-transform: uppercase; letter-spacing: 3px; text-align: center; font-weight: 700;" />
+    <input type="text" id="joinCodeInput" placeholder="4-LETTER CODE" maxlength="6" style="text-transform: uppercase; letter-spacing: 3px; text-align: center; font-weight: 700;" onkeydown="if(event.key==='Enter') joinRoom()" />
     <button class="btn btn-secondary" id="joinBtn" onclick="joinRoom()">Join Room 🔗</button>
   </div>
 
@@ -438,7 +485,7 @@
     </div>
 
     <div class="custom-q-box" id="customQBox">
-      <input type="text" id="customQInput" placeholder="Write your own secret question..." />
+      <input type="text" id="customQInput" placeholder="Write your own secret question..." onkeydown="if(event.key==='Enter') sendCustomQuestion()" />
       <button class="btn" onclick="sendCustomQuestion()">Ask</button>
     </div>
 
@@ -450,7 +497,7 @@
     <!-- ANSWERING PHASE -->
     <div id="answerPhase">
       <div class="partner-state" id="partnerState">Both answers stay hidden until you both lock in 💭</div>
-      <textarea id="myAnswerInput" placeholder="Type your secret answer here..."></textarea>
+      <textarea id="myAnswerInput" placeholder="Type your secret answer here..." oninput="handleDraftInput()"></textarea>
       <button class="btn" id="lockBtn" onclick="lockAnswer()">Lock In Answer 🔒</button>
 
       <div class="action-row">
@@ -483,7 +530,7 @@
     <!-- PERSISTENT LIVE CHAT -->
     <div class="chat-box">
       <div class="chat-title">
-        <span>Live Chat 💬 (stays saved across cards)</span>
+        <span>Live Chat 💬 (stays saved across cards & refreshes)</span>
         <div class="reactions">
           <button class="react-btn" onclick="sendChat('❤️')">❤️</button>
           <button class="react-btn" onclick="sendChat('😂')">😂</button>
@@ -503,7 +550,6 @@
 <div class="toast" id="toast">Copied!</div>
 
 <script>
-  // Creative emergency fallback ONLY if all AI servers fail offline
   const EMERGENCY_CREATIVE = [
     "If we could teleport anywhere in the world for just two hours right now to share tea and talk, where are we landing?",
     "Suppose we had to co-author a movie based on how we met and our late-night talks—what would the title and opening scene be?",
@@ -524,16 +570,28 @@
     deep: "🌙 DEEP & REAL"
   };
 
+  const SESSION_KEY = "askreveal_active_session_v2";
+  const BACKUP_KEY = "askreveal_backup_session_v2";
+  const NAME_KEY = "askreveal_saved_name_v2";
+  const HOST_ALIVE_PREFIX = "askreveal_host_tab_alive_";
+
   let peer = null;
   let conn = null;
   let isHost = false;
+  let isSessionActive = false;
+  let hasConnectedOnce = false;
+  let currentScreenId = "lobbyScreen";
   let myName = "Me";
   let partnerName = "Partner";
   let roomCode = "";
   let currentVibe = "surprise";
+  let roundUpdatedAt = 0;
+  let hasActiveQuestion = false;
   let myAnswer = null;
+  let myDraftAnswer = "";
   let partnerAnswer = null;
   let isGenerating = false;
+  let resumeGenerateNeeded = false;
   let usedQuestions = new Set();
   let lastRoundSummary = "";
   let reqSeq = 0;
@@ -544,6 +602,14 @@
   let pendingNextMode = "next";
   let pendingCustomText = null;
 
+  let chatHistory = [];
+  let seenChatIds = new Set();
+
+  let hostRetryTimer = null;
+  let guestReconnectTimer = null;
+  let connectAttemptTimeout = null;
+  let hostAliveInterval = null;
+
   const peerConfig = {
     config: {
       iceServers: [
@@ -553,6 +619,136 @@
       ]
     }
   };
+
+  // --- Safe Storage & URL Helpers ---
+  function safeSessionGet(key) {
+    try { return window.sessionStorage.getItem(key); } catch (e) { return null; }
+  }
+  function safeSessionSet(key, val) {
+    try { window.sessionStorage.setItem(key, val); } catch (e) {}
+  }
+  function safeSessionRemove(key) {
+    try { window.sessionStorage.removeItem(key); } catch (e) {}
+  }
+  function safeLocalGet(key) {
+    try { return window.localStorage.getItem(key); } catch (e) { return null; }
+  }
+  function safeLocalSet(key, val) {
+    try { window.localStorage.setItem(key, val); } catch (e) {}
+  }
+  function safeLocalRemove(key) {
+    try { window.localStorage.removeItem(key); } catch (e) {}
+  }
+
+  function savePlayerNamePref() {
+    const val = document.getElementById("playerName").value.trim();
+    if (val) safeLocalSet(NAME_KEY, val);
+  }
+
+  function updateUrlRoomParam(code) {
+    try {
+      const url = new URL(window.location.href);
+      if (code) {
+        url.searchParams.set("room", code);
+      } else {
+        url.searchParams.delete("room");
+      }
+      window.history.replaceState({}, "", url.toString());
+    } catch (e) {}
+  }
+
+  function updateHeaderRoomControls() {
+    const leaveBtn = document.getElementById("leaveRoomBtn");
+    const roomBtn = document.getElementById("headerRoomBtn");
+    const inRoom = isSessionActive && roomCode && currentScreenId !== "lobbyScreen";
+    leaveBtn.style.display = inRoom ? "inline-block" : "none";
+    roomBtn.style.display = inRoom ? "inline-block" : "none";
+    if (inRoom) {
+      roomBtn.textContent = "🔗 " + roomCode;
+    }
+  }
+
+  function saveSession() {
+    if (!isSessionActive || !roomCode || currentScreenId === "lobbyScreen") return;
+    const payload = {
+      roomCode: roomCode,
+      isHost: isHost,
+      hasConnectedOnce: hasConnectedOnce,
+      screen: currentScreenId,
+      myName: myName,
+      partnerName: partnerName,
+      roundUpdatedAt: roundUpdatedAt,
+      hasActiveQuestion: hasActiveQuestion,
+      wasGenerating: isGenerating,
+      currentVibe: currentVibe,
+      qCategory: document.getElementById("qCategory").textContent,
+      qText: document.getElementById("qText").textContent,
+      myAnswer: myAnswer,
+      myDraftAnswer: myDraftAnswer,
+      partnerAnswer: partnerAnswer,
+      iAmReadyNext: iAmReadyNext,
+      partnerReadyNext: partnerReadyNext,
+      pendingNextVibe: pendingNextVibe,
+      pendingNextMode: pendingNextMode,
+      pendingCustomText: pendingCustomText,
+      chatHistory: chatHistory.slice(-200),
+      usedQuestions: Array.from(usedQuestions).slice(-50),
+      lastRoundSummary: lastRoundSummary,
+      savedAt: Date.now()
+    };
+    const raw = JSON.stringify(payload);
+    safeSessionSet(SESSION_KEY, raw);
+    safeLocalSet(BACKUP_KEY, raw);
+    if (myName) safeLocalSet(NAME_KEY, myName);
+  }
+
+  function clearSavedSession() {
+    if (roomCode) {
+      safeLocalRemove(HOST_ALIVE_PREFIX + roomCode);
+    }
+    safeSessionRemove(SESSION_KEY);
+    safeLocalRemove(BACKUP_KEY);
+  }
+
+  function startHostHeartbeat() {
+    clearInterval(hostAliveInterval);
+    if (!isHost || !roomCode) return;
+    safeLocalSet(HOST_ALIVE_PREFIX + roomCode, String(Date.now()));
+    hostAliveInterval = setInterval(() => {
+      if (isSessionActive && isHost && roomCode) {
+        safeLocalSet(HOST_ALIVE_PREFIX + roomCode, String(Date.now()));
+      }
+    }, 2000);
+  }
+
+  function cleanUpUnload() {
+    if (isHost && roomCode) {
+      safeLocalRemove(HOST_ALIVE_PREFIX + roomCode);
+    }
+    if (isSessionActive) {
+      saveSession();
+    }
+    if (peer && !peer.destroyed) {
+      try { peer.destroy(); } catch (e) {}
+    }
+  }
+
+  window.addEventListener("pagehide", cleanUpUnload);
+  window.addEventListener("beforeunload", cleanUpUnload);
+
+  window.addEventListener("online", () => {
+    if (!isSessionActive || !roomCode) return;
+    if (conn && conn.open) return;
+    if (isHost) {
+      if (!peer || peer.destroyed) {
+        startHostPeer(true, 0);
+      } else if (peer.disconnected) {
+        try { peer.reconnect(); } catch (e) { startHostPeer(true, 0); }
+      }
+    } else {
+      scheduleGuestReconnect(300);
+    }
+  });
 
   function ensurePeerLoaded() {
     return new Promise((resolve, reject) => {
@@ -565,29 +761,29 @@
     });
   }
 
-  window.addEventListener("DOMContentLoaded", () => {
-    const params = new URLSearchParams(window.location.search);
-    const urlRoom = params.get("room");
-    if (urlRoom) {
-      document.getElementById("joinCodeInput").value = urlRoom.toUpperCase();
-    }
-  });
-
   function isInRevealPhase() {
     return myAnswer !== null && partnerAnswer !== null;
   }
 
-  function showToast(msg) {
+  function showToast(msg, isError) {
     const t = document.getElementById("toast");
     t.textContent = msg;
+    t.classList.toggle("error", Boolean(isError));
     t.style.display = "block";
     clearTimeout(window._toastTimer);
-    window._toastTimer = setTimeout(() => { t.style.display = "none"; }, 2600);
+    window._toastTimer = setTimeout(() => {
+      t.style.display = "none";
+    }, isError ? 3600 : 2600);
   }
 
   function switchScreen(id) {
+    currentScreenId = id;
     document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
     document.getElementById(id).classList.add("active");
+    updateHeaderRoomControls();
+    if (isSessionActive && id !== "lobbyScreen") {
+      saveSession();
+    }
   }
 
   function randomCode() {
@@ -597,6 +793,12 @@
     return out;
   }
 
+  function handleDraftInput() {
+    myDraftAnswer = document.getElementById("myAnswerInput").value;
+    saveSession();
+  }
+
+  // --- Create / Join / Reconnect ---
   async function createRoom() {
     const btn = document.getElementById("createBtn");
     btn.disabled = true;
@@ -606,7 +808,7 @@
     try {
       await ensurePeerLoaded();
     } catch (e) {
-      alert(e.message);
+      showToast(e.message, true);
       btn.disabled = false;
       btn.textContent = "Create Private Room ✨";
       document.getElementById("statusText").textContent = "Lobby";
@@ -614,50 +816,119 @@
     }
 
     myName = document.getElementById("playerName").value.trim() || "Player 1";
+    safeLocalSet(NAME_KEY, myName);
+    resetRoundAndChatState();
     isHost = true;
+    isSessionActive = true;
+    hasConnectedOnce = false;
     roomCode = randomCode();
-    const peerId = "askreveal-ai-" + roomCode.toLowerCase();
 
+    startHostPeer(false, 0);
+  }
+
+  function startHostPeer(isRestoring, attempt) {
+    clearTimeout(hostRetryTimer);
+    if (!isSessionActive || !roomCode) return;
+
+    if (peer && !peer.destroyed) {
+      try { peer.destroy(); } catch (e) {}
+    }
+
+    const peerId = "askreveal-ai-" + roomCode.toLowerCase();
     peer = new Peer(peerId, peerConfig);
 
     const openTimeout = setTimeout(() => {
-      if (document.getElementById("lobbyScreen").classList.contains("active")) {
-        alert("Signaling server is slow right now. Please tap Create Private Room again!");
+      if (!isSessionActive) return;
+      if (!isRestoring && currentScreenId === "lobbyScreen") {
+        showToast("Signaling server is slow right now. Please tap Create Private Room again!", true);
+        const btn = document.getElementById("createBtn");
         btn.disabled = false;
         btn.textContent = "Create Private Room ✨";
         document.getElementById("statusText").textContent = "Lobby";
+        isSessionActive = false;
+      } else if (isRestoring && (!peer || !peer.open)) {
+        hostRetryTimer = setTimeout(() => startHostPeer(true, attempt + 1), 1600);
       }
-    }, 9000);
+    }, 8500);
 
     peer.on("open", () => {
       clearTimeout(openTimeout);
+      if (!isSessionActive) return;
+
+      updateUrlRoomParam(roomCode);
+      startHostHeartbeat();
       document.getElementById("displayRoomCode").textContent = roomCode;
-      document.getElementById("statusText").textContent = "Waiting...";
-      switchScreen("waitScreen");
+
+      if (!isRestoring) {
+        const btn = document.getElementById("createBtn");
+        btn.disabled = false;
+        btn.textContent = "Create Private Room ✨";
+        document.getElementById("statusText").textContent = "Waiting...";
+        switchScreen("waitScreen");
+      } else {
+        if (currentScreenId === "waitScreen") {
+          document.getElementById("statusText").textContent = "Waiting...";
+        } else if (!conn || !conn.open) {
+          document.getElementById("statusText").textContent = "Waiting reconnect...";
+        }
+        saveSession();
+        if (resumeGenerateNeeded && currentScreenId === "gameScreen") {
+          resumeGenerateNeeded = false;
+          requestLiveQuestion(currentVibe || "surprise", hasActiveQuestion ? "next" : "first");
+        }
+      }
     });
 
     peer.on("connection", (incomingConn) => {
-      conn = incomingConn;
-      setupConnection();
+      if (!isSessionActive) return;
+      if (conn && conn !== incomingConn) {
+        try { conn.close(); } catch (e) {}
+      }
+      setupConnection(incomingConn);
+    });
+
+    peer.on("disconnected", () => {
+      if (!isSessionActive || !peer || peer.destroyed) return;
+      try { peer.reconnect(); } catch (e) {}
     });
 
     peer.on("error", (err) => {
       clearTimeout(openTimeout);
-      if (err.type === "unavailable-id") {
-        peer.destroy();
-        createRoom();
+      if (!isSessionActive) return;
+
+      if (err && err.type === "unavailable-id") {
+        try { peer.destroy(); } catch (e) {}
+        if (isRestoring) {
+          if (attempt < 10) {
+            document.getElementById("statusText").textContent = "Reclaiming room...";
+            hostRetryTimer = setTimeout(() => startHostPeer(true, attempt + 1), 1400);
+          } else {
+            showToast("Room ID still busy — retrying...", true);
+            hostRetryTimer = setTimeout(() => startHostPeer(true, 0), 3000);
+          }
+        } else {
+          roomCode = randomCode();
+          startHostPeer(false, 0);
+        }
+      } else if (isRestoring) {
+        hostRetryTimer = setTimeout(() => startHostPeer(true, attempt + 1), 2000);
       } else {
-        alert("Connection error: " + err.type);
+        showToast("Connection error: " + (err ? err.type : "network"), true);
+        const btn = document.getElementById("createBtn");
         btn.disabled = false;
         btn.textContent = "Create Private Room ✨";
         document.getElementById("statusText").textContent = "Lobby";
+        isSessionActive = false;
       }
     });
   }
 
   async function joinRoom() {
     const code = document.getElementById("joinCodeInput").value.trim().toUpperCase();
-    if (code.length < 4) return alert("Please enter the 4-letter room code!");
+    if (code.length < 4) {
+      showToast("Please enter the 4-letter room code!", true);
+      return;
+    }
 
     const btn = document.getElementById("joinBtn");
     btn.disabled = true;
@@ -667,7 +938,7 @@
     try {
       await ensurePeerLoaded();
     } catch (e) {
-      alert(e.message);
+      showToast(e.message, true);
       btn.disabled = false;
       btn.textContent = "Join Room 🔗";
       document.getElementById("statusText").textContent = "Lobby";
@@ -675,47 +946,259 @@
     }
 
     myName = document.getElementById("playerName").value.trim() || "Player 2";
+    safeLocalSet(NAME_KEY, myName);
+    resetRoundAndChatState();
     isHost = false;
+    isSessionActive = true;
+    hasConnectedOnce = false;
     roomCode = code;
 
+    startGuestPeer(false);
+  }
+
+  function resetJoinLobbyUI(errMsg) {
+    if (errMsg) showToast(errMsg, true);
+    const btn = document.getElementById("joinBtn");
+    btn.disabled = false;
+    btn.textContent = "Join Room 🔗";
+    document.getElementById("statusText").textContent = "Lobby";
+    isSessionActive = false;
+  }
+
+  function scheduleGuestReconnect(delayMs) {
+    clearTimeout(guestReconnectTimer);
+    if (!isSessionActive || isHost || !roomCode) return;
+    document.getElementById("statusDot").classList.remove("online");
+    document.getElementById("statusText").textContent = "Reconnecting...";
+    guestReconnectTimer = setTimeout(() => {
+      if (!isSessionActive || isHost || (conn && conn.open)) return;
+      startGuestPeer(true);
+    }, delayMs || 2000);
+  }
+
+  function startGuestPeer(isRestoring) {
+    clearTimeout(guestReconnectTimer);
+    clearTimeout(connectAttemptTimeout);
+    if (!isSessionActive || isHost || !roomCode) return;
+
+    const connectToHost = () => {
+      if (!isSessionActive || !peer || peer.destroyed) return;
+      const outgoing = peer.connect("askreveal-ai-" + roomCode.toLowerCase(), { reliable: true });
+      setupConnection(outgoing);
+
+      connectAttemptTimeout = setTimeout(() => {
+        if (!isSessionActive) return;
+        if (!conn || !conn.open) {
+          try { outgoing.close(); } catch (e) {}
+          if (isRestoring || hasConnectedOnce) {
+            scheduleGuestReconnect(1600);
+          } else {
+            try { peer.destroy(); } catch (e) {}
+            resetJoinLobbyUI("Could not find room " + roomCode + "! Make sure your partner has the room open.");
+          }
+        }
+      }, 6500);
+    };
+
+    if (peer && !peer.destroyed && peer.open) {
+      connectToHost();
+      return;
+    }
+
+    if (peer && !peer.destroyed) {
+      try { peer.destroy(); } catch (e) {}
+    }
+
     peer = new Peer(undefined, peerConfig);
+
     peer.on("open", () => {
-      conn = peer.connect("askreveal-ai-" + roomCode.toLowerCase(), { reliable: true });
-      setupConnection();
+      if (!isSessionActive) return;
+      connectToHost();
+    });
+
+    peer.on("disconnected", () => {
+      if (!isSessionActive || !peer || peer.destroyed) return;
+      try { peer.reconnect(); } catch (e) {}
     });
 
     peer.on("error", () => {
-      alert("Could not find that room! Check the code and make sure your partner has the room open.");
-      btn.disabled = false;
-      btn.textContent = "Join Room 🔗";
-      document.getElementById("statusText").textContent = "Lobby";
+      clearTimeout(connectAttemptTimeout);
+      if (!isSessionActive) return;
+      if (isRestoring || hasConnectedOnce) {
+        try { peer.destroy(); } catch (e) {}
+        scheduleGuestReconnect(2000);
+      } else {
+        try { peer.destroy(); } catch (e) {}
+        resetJoinLobbyUI("Could not find room " + roomCode + "! Check the code and try again.");
+      }
     });
   }
 
-  function setupConnection() {
-    conn.on("open", () => {
-      conn.send({ type: "hello", name: myName });
-      document.getElementById("statusDot").classList.add("online");
-      switchScreen("gameScreen");
-      if (isHost) {
-        setTimeout(() => requestLiveQuestion("surprise", "first"), 400);
+  function buildSyncPayload() {
+    return {
+      type: "sync_state",
+      name: myName,
+      roundUpdatedAt: roundUpdatedAt,
+      hasActiveQuestion: hasActiveQuestion,
+      isGenerating: isGenerating,
+      currentVibe: currentVibe,
+      qCategory: document.getElementById("qCategory").textContent,
+      qText: document.getElementById("qText").textContent,
+      myLockedAnswer: myAnswer,
+      iAmReadyNext: iAmReadyNext,
+      pendingNextVibe: pendingNextVibe,
+      pendingNextMode: pendingNextMode,
+      pendingCustomText: pendingCustomText,
+      chatHistory: chatHistory.slice(-200)
+    };
+  }
+
+  function mergeIncomingChatHistory(incomingList) {
+    if (!Array.isArray(incomingList) || incomingList.length === 0) return;
+    let changed = false;
+    for (let i = 0; i < incomingList.length; i++) {
+      const item = incomingList[i];
+      if (!item || !item.id) continue;
+      if (!seenChatIds.has(item.id)) {
+        seenChatIds.add(item.id);
+        chatHistory.push(item);
+        changed = true;
       }
+    }
+    if (changed) {
+      chatHistory.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+      renderFullChatHistory();
+    }
+  }
+
+  function handleSyncState(data) {
+    if (data.name) {
+      partnerName = data.name;
+      document.getElementById("statusText").textContent = "With " + partnerName + " ❤️";
+    }
+
+    mergeIncomingChatHistory(data.chatHistory);
+
+    if (!hasActiveQuestion && !data.hasActiveQuestion) {
+      if (isHost && !isGenerating) {
+        setTimeout(() => {
+          if (!hasActiveQuestion && !isGenerating) {
+            requestLiveQuestion("surprise", "first");
+          }
+        }, 300);
+      }
+      saveSession();
+      return;
+    }
+
+    if (data.hasActiveQuestion && (!hasActiveQuestion || (data.roundUpdatedAt || 0) > (roundUpdatedAt || 0))) {
+      highlightVibeChip(data.currentVibe || "surprise");
+      const sameText = hasActiveQuestion && data.qText === document.getElementById("qText").textContent;
+      roundUpdatedAt = data.roundUpdatedAt || Date.now();
+      hasActiveQuestion = true;
+      isGenerating = false;
+
+      if (!sameText) {
+        myAnswer = null;
+        myDraftAnswer = "";
+        iAmReadyNext = false;
+      }
+      partnerAnswer = (data.myLockedAnswer !== undefined) ? data.myLockedAnswer : null;
+      partnerReadyNext = Boolean(data.iAmReadyNext);
+      pendingNextVibe = data.pendingNextVibe || currentVibe;
+      pendingNextMode = data.pendingNextMode || "next";
+      pendingCustomText = data.pendingCustomText || null;
+
+      renderCurrentRoundState(data.qCategory || VIBE_LABELS[currentVibe] || "✨ CREATIVE AI", data.qText);
+      saveSession();
+      return;
+    }
+
+    if (hasActiveQuestion && data.hasActiveQuestion && data.qText === document.getElementById("qText").textContent) {
+      if (data.myLockedAnswer !== null && data.myLockedAnswer !== undefined) {
+        partnerAnswer = data.myLockedAnswer;
+      }
+      partnerReadyNext = Boolean(data.iAmReadyNext);
+      if (data.pendingNextVibe) pendingNextVibe = data.pendingNextVibe;
+      if (data.pendingNextMode) pendingNextMode = data.pendingNextMode;
+      if (data.pendingCustomText) pendingCustomText = data.pendingCustomText;
+
+      checkReveal();
+      if (iAmReadyNext && partnerReadyNext) {
+        iAmReadyNext = false;
+        partnerReadyNext = false;
+        if (isHost) executePendingNext();
+      } else {
+        updateReadyBannerUI();
+      }
+      saveSession();
+    } else if (hasActiveQuestion && (!data.hasActiveQuestion || (roundUpdatedAt || 0) > (data.roundUpdatedAt || 0))) {
+      if (conn && conn.open) {
+        conn.send(buildSyncPayload());
+      }
+    }
+  }
+
+  function setupConnection(activeConn) {
+    conn = activeConn;
+
+    activeConn.on("open", () => {
+      if (conn !== activeConn || !isSessionActive) return;
+      clearTimeout(connectAttemptTimeout);
+      clearTimeout(guestReconnectTimer);
+
+      const wasReconnect = hasConnectedOnce;
+      hasConnectedOnce = true;
+
+      const joinBtn = document.getElementById("joinBtn");
+      joinBtn.disabled = false;
+      joinBtn.textContent = "Join Room 🔗";
+
+      updateUrlRoomParam(roomCode);
+      document.getElementById("statusDot").classList.add("online");
+      document.getElementById("statusText").textContent = partnerName && partnerName !== "Partner"
+        ? ("With " + partnerName + " ❤️")
+        : "Connected ❤️";
+
+      if (currentScreenId !== "gameScreen") {
+        switchScreen("gameScreen");
+      } else {
+        updateHeaderRoomControls();
+      }
+
+      activeConn.send({ type: "hello", name: myName });
+      activeConn.send(buildSyncPayload());
+
+      if (wasReconnect) {
+        showToast("Reconnected with " + partnerName + " ❤️");
+      }
+      saveSession();
     });
 
-    conn.on("data", (data) => {
+    activeConn.on("data", (data) => {
+      if (conn !== activeConn || !isSessionActive || !data) return;
+
       if (data.type === "hello") {
-        partnerName = data.name;
+        partnerName = data.name || "Partner";
+        document.getElementById("statusDot").classList.add("online");
         document.getElementById("statusText").textContent = "With " + partnerName + " ❤️";
         updatePartnerState();
+        if (isInRevealPhase()) {
+          document.getElementById("partnerCardTitle").textContent = partnerName;
+        }
+        saveSession();
+      } else if (data.type === "sync_state") {
+        handleSyncState(data);
       } else if (data.type === "generating") {
         setGeneratingUI(data.vibe, data.reasonText);
       } else if (data.type === "question") {
         highlightVibeChip(data.vibe);
-        applyNewQuestion(data.vibeLabel, data.text);
+        applyNewQuestion(data.vibeLabel, data.text, data.roundUpdatedAt || Date.now());
         if (data.toast) showToast(data.toast);
       } else if (data.type === "locked") {
         partnerAnswer = data.answer;
         checkReveal();
+        saveSession();
       } else if (data.type === "ready_next") {
         partnerReadyNext = true;
         pendingNextVibe = data.vibe || currentVibe;
@@ -725,27 +1208,112 @@
         if (iAmReadyNext) {
           iAmReadyNext = false;
           partnerReadyNext = false;
+          saveSession();
           if (isHost) {
             executePendingNext();
           }
         } else {
           updateReadyBannerUI();
+          saveSession();
           showToast("✨ " + partnerName + " is ready for the next card!");
         }
       } else if (data.type === "chat") {
-        appendChat(partnerName, data.msg, false);
+        receiveChatPacket(data);
+      } else if (data.type === "partner_left") {
+        document.getElementById("statusDot").classList.remove("online");
+        document.getElementById("statusText").textContent = (data.name || partnerName) + " left";
+        showToast((data.name || partnerName) + " left the room");
       }
     });
 
-    conn.on("close", () => {
+    activeConn.on("close", () => {
+      if (conn !== activeConn || !isSessionActive) return;
       document.getElementById("statusDot").classList.remove("online");
-      document.getElementById("statusText").textContent = "Disconnected";
-      showToast(partnerName + " disconnected");
+      document.getElementById("statusText").textContent = "Reconnecting...";
+      if (!isHost) {
+        scheduleGuestReconnect(1500);
+      }
+    });
+
+    activeConn.on("error", () => {
+      if (conn !== activeConn || !isSessionActive) return;
+      document.getElementById("statusDot").classList.remove("online");
+      if (!isHost) {
+        scheduleGuestReconnect(1800);
+      }
     });
   }
 
+  function leaveRoom() {
+    isSessionActive = false;
+    hasConnectedOnce = false;
+    clearTimeout(hostRetryTimer);
+    clearTimeout(guestReconnectTimer);
+    clearTimeout(connectAttemptTimeout);
+    clearInterval(hostAliveInterval);
+
+    if (conn && conn.open) {
+      try { conn.send({ type: "partner_left", name: myName }); } catch (e) {}
+    }
+    try { if (conn) conn.close(); } catch (e) {}
+    try { if (peer && !peer.destroyed) peer.destroy(); } catch (e) {}
+
+    conn = null;
+    peer = null;
+    clearSavedSession();
+    roomCode = "";
+    updateUrlRoomParam("");
+    resetRoundAndChatState();
+
+    document.getElementById("statusDot").classList.remove("online");
+    document.getElementById("statusText").textContent = "Lobby";
+    document.getElementById("createBtn").disabled = false;
+    document.getElementById("createBtn").textContent = "Create Private Room ✨";
+    document.getElementById("joinBtn").disabled = false;
+    document.getElementById("joinBtn").textContent = "Join Room 🔗";
+    document.getElementById("joinCodeInput").value = "";
+
+    switchScreen("lobbyScreen");
+    showToast("Left the room");
+  }
+
+  function resetRoundAndChatState() {
+    partnerName = "Partner";
+    currentVibe = "surprise";
+    roundUpdatedAt = 0;
+    hasActiveQuestion = false;
+    myAnswer = null;
+    myDraftAnswer = "";
+    partnerAnswer = null;
+    isGenerating = false;
+    resumeGenerateNeeded = false;
+    usedQuestions = new Set();
+    lastRoundSummary = "";
+    iAmReadyNext = false;
+    partnerReadyNext = false;
+    pendingNextVibe = "surprise";
+    pendingNextMode = "next";
+    pendingCustomText = null;
+    chatHistory = [];
+    seenChatIds = new Set();
+
+    document.getElementById("chatMessages").innerHTML = "";
+    document.getElementById("qCategory").textContent = "✨ LIVE AI THINKING...";
+    document.getElementById("qText").textContent = "Crafting a spontaneous creative question...";
+    document.getElementById("myAnswerInput").value = "";
+    document.getElementById("myAnswerInput").disabled = false;
+    document.getElementById("lockBtn").disabled = false;
+    document.getElementById("lockBtn").textContent = "Lock In Answer 🔒";
+    document.getElementById("answerPhase").style.display = "block";
+    document.getElementById("revealPhase").style.display = "none";
+    highlightVibeChip("surprise");
+  }
+
   function copyInviteLink() {
-    const url = window.location.origin + window.location.pathname + "?room=" + roomCode;
+    const base = (window.location.origin && window.location.origin !== "null")
+      ? (window.location.origin + window.location.pathname)
+      : window.location.href.split("?")[0];
+    const url = base + "?room=" + roomCode;
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(url).then(() => {
         showToast("Direct link copied! Send it to her ❤️");
@@ -772,7 +1340,7 @@
     });
   }
 
-  function proposeNextRound(vibe, mode, customText = null) {
+  function proposeNextRound(vibe, mode, customText) {
     if (isGenerating) return;
     iAmReadyNext = true;
     pendingNextVibe = vibe;
@@ -791,9 +1359,11 @@
     if (partnerReadyNext) {
       iAmReadyNext = false;
       partnerReadyNext = false;
+      saveSession();
       executePendingNext();
     } else {
       updateReadyBannerUI();
+      saveSession();
     }
   }
 
@@ -802,9 +1372,10 @@
       const txt = pendingCustomText;
       pendingCustomText = null;
       const label = "✍️ CUSTOM QUESTION";
-      applyNewQuestion(label, txt);
+      const ts = Date.now();
+      applyNewQuestion(label, txt, ts);
       if (conn && conn.open) {
-        conn.send({ type: "question", vibe: currentVibe, vibeLabel: label, text: txt });
+        conn.send({ type: "question", vibe: currentVibe, vibeLabel: label, text: txt, roundUpdatedAt: ts });
       }
     } else {
       requestLiveQuestion(pendingNextVibe, pendingNextMode);
@@ -841,7 +1412,7 @@
     document.getElementById("customQBox").classList.remove("open");
     highlightVibeChip(vibe);
     if (isInRevealPhase()) {
-      proposeNextRound(vibe, "vibe");
+      proposeNextRound(vibe, "vibe", null);
     } else {
       requestLiveQuestion(vibe, "vibe");
     }
@@ -856,7 +1427,7 @@
     if (isGenerating) return;
     highlightVibeChip("surprise");
     if (isInRevealPhase()) {
-      proposeNextRound("surprise", "surprise");
+      proposeNextRound("surprise", "surprise", null);
     } else {
       requestLiveQuestion("surprise", "surprise");
     }
@@ -864,7 +1435,7 @@
 
   function nextAIQuestion() {
     if (isGenerating) return;
-    proposeNextRound(currentVibe, "next");
+    proposeNextRound(currentVibe, "next", null);
   }
 
   function setGeneratingUI(vibe, reasonText) {
@@ -880,6 +1451,7 @@
     document.getElementById("surpriseBtn").disabled = true;
     document.getElementById("nextCardBtn").disabled = true;
     document.getElementById("nextSurpriseBtn").disabled = true;
+    saveSession();
   }
 
   async function requestLiveQuestion(vibe, mode) {
@@ -901,13 +1473,14 @@
     }
 
     const result = await fetchLiveCreativeAI(vibe);
-    if (seq !== reqSeq) return;
+    if (seq !== reqSeq || !isSessionActive) return;
 
     usedQuestions.add(result.text);
     const baseLabel = VIBE_LABELS[vibe] || "✨ CREATIVE AI";
     const fullLabel = result.isLive ? `${baseLabel} • ⚡ LIVE AI` : baseLabel;
+    const ts = Date.now();
 
-    applyNewQuestion(fullLabel, result.text);
+    applyNewQuestion(fullLabel, result.text, ts);
     if (toastMsg) showToast(toastMsg);
 
     if (conn && conn.open) {
@@ -916,6 +1489,7 @@
         vibe: vibe,
         vibeLabel: fullLabel,
         text: result.text,
+        roundUpdatedAt: ts,
         toast: toastMsg
       });
     }
@@ -925,7 +1499,6 @@
     let out = (raw || "").trim();
     out = out.replace(/^(Question|Card|Prompt)\s*\d*[:.-]\s*/i, "");
     out = out.replace(/^["'“”*-\d.)\s]+|["'“”]+$/g, "").trim();
-    // Keep only the first question if AI wrote multiple lines
     if (out.includes("\n")) {
       out = out.split("\n").map(s => s.trim()).filter(Boolean)[0] || out;
     }
@@ -967,41 +1540,39 @@
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 11000);
 
-    // Endpoint 1: Pollinations OpenAI-compatible POST
-    const req1 = fetch("https://text.pollinations.ai/openai", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      signal: controller.signal,
-      body: JSON.stringify({
-        model: "openai",
-        seed: seed,
-        temperature: 1.1,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ]
-      })
-    }).then(async r => {
-      if (!r.ok) throw new Error("req1 fail");
-      const j = await r.json();
-      const txt = cleanAIOutput(j?.choices?.[0]?.message?.content);
-      if (txt.length < 15 || txt.length > 240 || usedQuestions.has(txt)) throw new Error("invalid");
-      return txt;
-    });
-
-    // Endpoint 2: Pollinations direct fast GET with Mistral/OpenAI race
-    const fullGetPrompt = encodeURIComponent(`${systemPrompt}\n\n${userPrompt}`);
-    const req2 = fetch(`https://text.pollinations.ai/${fullGetPrompt}?model=mistral&seed=${seed + 7}&temperature=1.1`, {
-      signal: controller.signal
-    }).then(async r => {
-      if (!r.ok) throw new Error("req2 fail");
-      const raw = await r.text();
-      const txt = cleanAIOutput(raw);
-      if (txt.length < 15 || txt.length > 240 || usedQuestions.has(txt)) throw new Error("invalid");
-      return txt;
-    });
-
     try {
+      const req1 = fetch("https://text.pollinations.ai/openai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: "openai",
+          seed: seed,
+          temperature: 1.1,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ]
+        })
+      }).then(async r => {
+        if (!r.ok) throw new Error("req1 fail");
+        const j = await r.json();
+        const txt = cleanAIOutput(j?.choices?.[0]?.message?.content);
+        if (txt.length < 15 || txt.length > 240 || usedQuestions.has(txt)) throw new Error("invalid");
+        return txt;
+      });
+
+      const fullGetPrompt = encodeURIComponent(`${systemPrompt}\n\n${userPrompt}`);
+      const req2 = fetch(`https://text.pollinations.ai/${fullGetPrompt}?model=mistral&seed=${seed + 7}&temperature=1.1`, {
+        signal: controller.signal
+      }).then(async r => {
+        if (!r.ok) throw new Error("req2 fail");
+        const raw = await r.text();
+        const txt = cleanAIOutput(raw);
+        if (txt.length < 15 || txt.length > 240 || usedQuestions.has(txt)) throw new Error("invalid");
+        return txt;
+      });
+
       const winnerText = await Promise.any([req1, req2]);
       clearTimeout(timeoutId);
       controller.abort();
@@ -1031,53 +1602,77 @@
       proposeNextRound(currentVibe, "custom", txt);
     } else {
       const label = "✍️ ASKED BY " + myName.toUpperCase();
-      applyNewQuestion(label, txt);
+      const ts = Date.now();
+      applyNewQuestion(label, txt, ts);
       if (conn && conn.open) {
-        conn.send({ type: "question", vibe: currentVibe, vibeLabel: label, text: txt });
+        conn.send({ type: "question", vibe: currentVibe, vibeLabel: label, text: txt, roundUpdatedAt: ts });
       }
     }
   }
 
-  function addChatSeparatorIfNeeded() {
-    const box = document.getElementById("chatMessages");
-    if (box.children.length > 0 && !box.lastElementChild.classList.contains("chat-round-sep")) {
-      const sep = document.createElement("div");
-      sep.className = "chat-round-sep";
-      sep.textContent = "— New Question —";
-      box.appendChild(sep);
-      box.scrollTop = box.scrollHeight;
+  function addChatSeparatorIfNeeded(sepIdTs) {
+    if (chatHistory.length > 0 && chatHistory[chatHistory.length - 1].kind !== "sep") {
+      const sepId = "sep_" + (sepIdTs || Date.now());
+      if (!seenChatIds.has(sepId)) {
+        const entry = { id: sepId, kind: "sep", ts: sepIdTs || Date.now() };
+        seenChatIds.add(sepId);
+        chatHistory.push(entry);
+        appendChatDomItem(entry);
+      }
     }
   }
 
-  function applyNewQuestion(vibeLabel, text) {
+  function applyNewQuestion(vibeLabel, text, ts) {
+    const roundTs = ts || Date.now();
     isGenerating = false;
+    resumeGenerateNeeded = false;
+    hasActiveQuestion = true;
+    roundUpdatedAt = roundTs;
     myAnswer = null;
+    myDraftAnswer = "";
     partnerAnswer = null;
     iAmReadyNext = false;
     partnerReadyNext = false;
     pendingCustomText = null;
 
-    addChatSeparatorIfNeeded();
+    addChatSeparatorIfNeeded(roundTs);
+    renderCurrentRoundState(vibeLabel, text);
+    saveSession();
+  }
 
+  function renderCurrentRoundState(vibeLabel, text) {
     document.getElementById("questionCard").classList.remove("loading");
     document.getElementById("qCategory").textContent = vibeLabel;
     document.getElementById("qText").textContent = text;
-    document.getElementById("myAnswerInput").value = "";
-    document.getElementById("myAnswerInput").disabled = false;
-    document.getElementById("lockBtn").disabled = false;
     document.getElementById("switchBtn").disabled = false;
     document.getElementById("surpriseBtn").disabled = false;
-    document.getElementById("lockBtn").textContent = "Lock In Answer 🔒";
-    document.getElementById("answerPhase").style.display = "block";
-    document.getElementById("revealPhase").style.display = "none";
-    updateReadyBannerUI();
-    updatePartnerState();
+
+    if (myAnswer !== null && partnerAnswer !== null) {
+      checkReveal();
+    } else {
+      document.getElementById("answerPhase").style.display = "block";
+      document.getElementById("revealPhase").style.display = "none";
+      if (myAnswer !== null) {
+        document.getElementById("myAnswerInput").value = myAnswer;
+        document.getElementById("myAnswerInput").disabled = true;
+        document.getElementById("lockBtn").disabled = true;
+        document.getElementById("lockBtn").textContent = "Locked In! Waiting... ⏳";
+      } else {
+        document.getElementById("myAnswerInput").value = myDraftAnswer || "";
+        document.getElementById("myAnswerInput").disabled = false;
+        document.getElementById("lockBtn").disabled = false;
+        document.getElementById("lockBtn").textContent = "Lock In Answer 🔒";
+      }
+      updateReadyBannerUI();
+      updatePartnerState();
+    }
   }
 
   function lockAnswer() {
     const val = document.getElementById("myAnswerInput").value.trim();
-    if (!val) return showToast("Write your answer first!");
+    if (!val) return showToast("Write your answer first!", true);
     myAnswer = val;
+    myDraftAnswer = "";
     document.getElementById("myAnswerInput").disabled = true;
     document.getElementById("lockBtn").disabled = true;
     document.getElementById("lockBtn").textContent = "Locked In! Waiting... ⏳";
@@ -1085,6 +1680,7 @@
       conn.send({ type: "locked", answer: myAnswer });
     }
     checkReveal();
+    saveSession();
   }
 
   function updatePartnerState() {
@@ -1105,8 +1701,6 @@
     updatePartnerState();
     if (myAnswer !== null && partnerAnswer !== null) {
       lastRoundSummary = `${myName} said "${myAnswer.slice(0, 70)}", ${partnerName} said "${partnerAnswer.slice(0, 70)}"`;
-      iAmReadyNext = false;
-      partnerReadyNext = false;
       updateReadyBannerUI();
       document.getElementById("answerPhase").style.display = "none";
       document.getElementById("revealPhase").style.display = "block";
@@ -1122,20 +1716,196 @@
     const msg = preset || input.value.trim();
     if (!msg) return;
     if (!preset) input.value = "";
-    appendChat("You", msg, true);
+
+    const msgObj = {
+      id: "m_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
+      kind: "msg",
+      senderRole: isHost ? "host" : "guest",
+      senderName: myName,
+      text: msg,
+      ts: Date.now()
+    };
+
+    seenChatIds.add(msgObj.id);
+    chatHistory.push(msgObj);
+    appendChatDomItem(msgObj);
+    saveSession();
+
     if (conn && conn.open) {
-      conn.send({ type: "chat", msg: msg });
+      conn.send({
+        type: "chat",
+        id: msgObj.id,
+        senderRole: msgObj.senderRole,
+        senderName: msgObj.senderName,
+        msg: msgObj.text,
+        ts: msgObj.ts
+      });
     }
   }
 
-  function appendChat(sender, text, isMe) {
+  function receiveChatPacket(data) {
+    const id = data.id || ("m_" + (data.ts || Date.now()) + "_p");
+    if (seenChatIds.has(id)) return;
+    const entry = {
+      id: id,
+      kind: "msg",
+      senderRole: data.senderRole || (isHost ? "guest" : "host"),
+      senderName: data.senderName || partnerName,
+      text: data.msg,
+      ts: data.ts || Date.now()
+    };
+    seenChatIds.add(id);
+    chatHistory.push(entry);
+    appendChatDomItem(entry);
+    saveSession();
+  }
+
+  function appendChatDomItem(item) {
     const box = document.getElementById("chatMessages");
-    const div = document.createElement("div");
-    div.className = "msg " + (isMe ? "me" : "them");
-    div.textContent = (isMe ? "" : sender + ": ") + text;
-    box.appendChild(div);
+    if (item.kind === "sep") {
+      if (box.children.length > 0 && !box.lastElementChild.classList.contains("chat-round-sep")) {
+        const sep = document.createElement("div");
+        sep.className = "chat-round-sep";
+        sep.textContent = "— New Question —";
+        box.appendChild(sep);
+      }
+    } else {
+      const myRole = isHost ? "host" : "guest";
+      const isMe = item.senderRole === myRole;
+      const div = document.createElement("div");
+      div.className = "msg " + (isMe ? "me" : "them");
+      const displaySender = item.senderName || partnerName;
+      div.textContent = (isMe ? "" : displaySender + ": ") + item.text;
+      box.appendChild(div);
+    }
     box.scrollTop = box.scrollHeight;
   }
+
+  function renderFullChatHistory() {
+    const box = document.getElementById("chatMessages");
+    box.innerHTML = "";
+    for (let i = 0; i < chatHistory.length; i++) {
+      appendChatDomItem(chatHistory[i]);
+    }
+  }
+
+  // --- Automatic Session Restore on Page Load / Refresh ---
+  function findSessionToRestore(urlRoom) {
+    const rawTab = safeSessionGet(SESSION_KEY);
+    if (rawTab) {
+      try {
+        const parsed = JSON.parse(rawTab);
+        if (parsed && parsed.roomCode) {
+          if (!urlRoom || urlRoom === parsed.roomCode) {
+            return parsed;
+          }
+        }
+      } catch (e) {}
+    }
+
+    const rawBackup = safeLocalGet(BACKUP_KEY);
+    if (rawBackup) {
+      try {
+        const backup = JSON.parse(rawBackup);
+        const freshEnough = backup && backup.roomCode && (Date.now() - (backup.savedAt || 0) < 86400000);
+        if (freshEnough && (!urlRoom || urlRoom === backup.roomCode)) {
+          const aliveTs = Number(safeLocalGet(HOST_ALIVE_PREFIX + backup.roomCode) || "0");
+          const hostOpenInOtherTab = (Date.now() - aliveTs) < 4500;
+          if (!(hostOpenInOtherTab && backup.isHost)) {
+            return backup;
+          }
+        }
+      } catch (e) {}
+    }
+    return null;
+  }
+
+  async function restoreSession(saved) {
+    roomCode = saved.roomCode;
+    isHost = Boolean(saved.isHost);
+    hasConnectedOnce = Boolean(saved.hasConnectedOnce);
+    isSessionActive = true;
+    myName = saved.myName || (isHost ? "Player 1" : "Player 2");
+    partnerName = saved.partnerName || "Partner";
+    roundUpdatedAt = saved.roundUpdatedAt || 0;
+    hasActiveQuestion = Boolean(saved.hasActiveQuestion);
+    currentVibe = saved.currentVibe || "surprise";
+    myAnswer = (saved.myAnswer !== undefined) ? saved.myAnswer : null;
+    myDraftAnswer = saved.myDraftAnswer || "";
+    partnerAnswer = (saved.partnerAnswer !== undefined) ? saved.partnerAnswer : null;
+    iAmReadyNext = Boolean(saved.iAmReadyNext);
+    partnerReadyNext = Boolean(saved.partnerReadyNext);
+    pendingNextVibe = saved.pendingNextVibe || currentVibe;
+    pendingNextMode = saved.pendingNextMode || "next";
+    pendingCustomText = saved.pendingCustomText || null;
+    lastRoundSummary = saved.lastRoundSummary || "";
+    usedQuestions = new Set(Array.isArray(saved.usedQuestions) ? saved.usedQuestions : []);
+
+    chatHistory = Array.isArray(saved.chatHistory) ? saved.chatHistory : [];
+    seenChatIds = new Set(chatHistory.map(c => c.id).filter(Boolean));
+
+    document.getElementById("playerName").value = myName;
+    document.getElementById("displayRoomCode").textContent = roomCode;
+    updateUrlRoomParam(roomCode);
+
+    const targetScreen = saved.screen === "waitScreen" ? "waitScreen" : "gameScreen";
+    highlightVibeChip(currentVibe);
+    renderFullChatHistory();
+
+    if (targetScreen === "gameScreen") {
+      if (hasActiveQuestion && saved.qText) {
+        renderCurrentRoundState(saved.qCategory || VIBE_LABELS[currentVibe] || "✨ CREATIVE AI", saved.qText);
+      } else if (isHost) {
+        resumeGenerateNeeded = true;
+      }
+      if (saved.wasGenerating && isHost) {
+        resumeGenerateNeeded = true;
+      }
+    }
+
+    document.getElementById("statusDot").classList.remove("online");
+    document.getElementById("statusText").textContent = targetScreen === "waitScreen" ? "Restoring..." : "Reconnecting...";
+    switchScreen(targetScreen);
+
+    try {
+      await ensurePeerLoaded();
+      if (!isSessionActive) return;
+      if (isHost) {
+        startHostPeer(true, 0);
+      } else {
+        startGuestPeer(true);
+      }
+    } catch (e) {
+      showToast("Waiting for internet to reconnect...", true);
+    }
+  }
+
+  function initApp() {
+    const savedName = safeLocalGet(NAME_KEY);
+    if (savedName) {
+      document.getElementById("playerName").value = savedName;
+    }
+
+    let urlRoom = "";
+    try {
+      const params = new URLSearchParams(window.location.search);
+      urlRoom = (params.get("room") || "").trim().toUpperCase();
+    } catch (e) {}
+
+    const saved = findSessionToRestore(urlRoom);
+    if (saved) {
+      restoreSession(saved);
+      return;
+    }
+
+    if (urlRoom) {
+      clearSavedSession();
+      document.getElementById("joinCodeInput").value = urlRoom;
+    }
+  }
+
+  initApp();
 </script>
 </body>
 </html>
+```
