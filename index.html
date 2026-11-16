@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Ask & Reveal • Live AI ✨</title>
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <title>Ask & Reveal • Live Creative AI ✨</title>
+  <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <style>
     :root {
       --bg1: #0f172a;
@@ -211,7 +211,7 @@
       padding: 20px 18px;
       text-align: center;
       margin-bottom: 14px;
-      min-height: 122px;
+      min-height: 126px;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -220,8 +220,8 @@
     }
 
     .question-card.loading {
-      opacity: 0.65;
-      animation: pulseCard 1.2s infinite ease-in-out;
+      opacity: 0.68;
+      animation: pulseCard 1.15s infinite ease-in-out;
     }
 
     @keyframes pulseCard {
@@ -239,8 +239,8 @@
     }
 
     .q-text {
-      font-size: 1.1rem;
-      line-height: 1.45;
+      font-size: 1.08rem;
+      line-height: 1.46;
       font-weight: 700;
     }
 
@@ -393,7 +393,7 @@
   <div class="header">
     <div class="logo-wrap">
       <div class="logo">Ask & Reveal ✨</div>
-      <div class="sub-logo">Live AI • Co-Created Edition ❤️</div>
+      <div class="sub-logo">v2.2 Live Creative AI ❤️</div>
     </div>
     <div class="status-badge">
       <span class="dot" id="statusDot"></span>
@@ -443,8 +443,8 @@
     </div>
 
     <div class="question-card" id="questionCard">
-      <div class="q-category" id="qCategory">✨ AI GENERATING...</div>
-      <div class="q-text" id="qText">Crafting your first mystery question...</div>
+      <div class="q-category" id="qCategory">✨ LIVE AI THINKING...</div>
+      <div class="q-text" id="qText">Crafting a spontaneous creative question...</div>
     </div>
 
     <!-- ANSWERING PHASE -->
@@ -480,7 +480,7 @@
       </div>
     </div>
 
-    <!-- PERSISTENT LIVE CHAT (NEVER AUTO-CLEARS) -->
+    <!-- PERSISTENT LIVE CHAT -->
     <div class="chat-box">
       <div class="chat-title">
         <span>Live Chat 💬 (stays saved across cards)</span>
@@ -503,74 +503,22 @@
 <div class="toast" id="toast">Copied!</div>
 
 <script>
-  const BACKUP_DECK = {
-    us_future: [
-      "What was your very first impression of me when we started talking, and what surprised you later?",
-      "What is your favorite little moment or conversation we have shared together so far?",
-      "If we had a completely free weekend together in the same city tomorrow, what is the first thing you would want us to do?",
-      "What is a fun activity or trip you would love for the two of us to experience together in the future?",
-      "What was the exact moment you realized you really enjoyed talking to me?",
-      "If we cooked dinner together in our own kitchen one day, who is chef and who is sous-chef?",
-      "What is a small everyday routine you look forward to sharing together one day?",
-      "If we opened a tiny cozy cafe or shop together in the future, what would we serve?",
-      "What is one place in your country you cannot wait to show me in person one day?",
-      "When you think about us a few years from now, what makes you smile the most?",
-      "What is a new hobby or skill you would love for both of us to learn together?",
-      "If we were picking out furniture for our future living room, what is one must-have item?"
-    ],
-    playful: [
-      "If we got locked inside a giant supermarket overnight, which aisle are we heading to first?",
-      "What is a harmless habit you have that would definitely make me laugh if I saw it every day?",
-      "Between the two of us, who would get lost first without GPS and refuse to admit it?",
-      "What is one snack or comfort food that instantly fixes your mood after a long shift?",
-      "If we were characters in an adventure movie, what role would each of us end up playing?",
-      "Who between us is more likely to stay up way too late saying 'just five more minutes'?",
-      "What is the funniest kitchen disaster you have ever witnessed or caused?",
-      "If I handed you the aux cord on a long road trip, what are we listening to first?",
-      "Between us, who is the bigger tea addict and how many cups count as 'too many'?",
-      "What is a silly childhood belief you held onto for way too long?",
-      "If you had to survive a whole week eating only three foods, what are you picking?"
-    ],
-    wyr: [
-      "Would you rather go on a spontaneous late-night food run together or stay in watching movies while it rains?",
-      "Would you rather know every language in the world fluently or be able to cook any dish perfectly on the first try?",
-      "Would you rather travel somewhere scenic and quiet in the mountains or explore a lively coastal city together?",
-      "Would you rather have an endless supply of your favorite tea or a personal chef for a year?",
-      "Would you rather wake up early to watch the sunrise together or stay up talking until dawn?",
-      "Would you rather live in a cozy house with a big garden or a high-floor apartment with a city view?",
-      "Would you rather road-trip across a whole country together or hop between historic cities by train?",
-      "Would you rather never have to do dishes again or never have to fold laundry again?",
-      "Would you rather receive a handwritten letter or a surprise care package full of your favorite things?"
-    ],
-    culture: [
-      "What is one dish from your family's kitchen that I absolutely have to try one day?",
-      "What is a favorite tradition or vibe in your family home that you want to carry into your future?",
-      "What is a word or affectionate phrase in your language that you love the meaning of?",
-      "What does an ideal, peaceful Friday or weekend look like in your home?",
-      "What is your favorite memory from Ramadan or Eid that always brings you warmth?",
-      "What is a book, story, or movie that genuinely stayed with you long after finishing it?",
-      "What is a childhood snack from where you grew up that you still love today?",
-      "What is one thing about your culture's hospitality that you are really proud of?",
-      "How do you usually like to unwind and recharge when you finally get home?"
-    ],
-    deep: [
-      "After a really long, exhausting day, what small gesture makes you feel the most cared for?",
-      "What is something about our dynamic that makes you feel comfortable being yourself?",
-      "What are you looking forward to most when you picture a peaceful, happy home in the future?",
-      "What is a quality in me that makes you feel safe and genuinely appreciated?",
-      "What is a dua or wish close to your heart that you find yourself making often?",
-      "How do you know when someone truly understands you without you having to over-explain?",
-      "What is one life lesson you learned the hard way that made you wiser and kinder?",
-      "When you feel stressed or overwhelmed, do you prefer quiet company, advice, or distraction?",
-      "What does building a strong, mercy-filled marriage mean to you at its core?",
-      "What is something small someone once did for you that you never forgot?"
-    ]
-  };
+  // Creative emergency fallback ONLY if all AI servers fail offline
+  const EMERGENCY_CREATIVE = [
+    "If we could teleport anywhere in the world for just two hours right now to share tea and talk, where are we landing?",
+    "Suppose we had to co-author a movie based on how we met and our late-night talks—what would the title and opening scene be?",
+    "If you could bottle up one specific feeling or moment from our conversations so far to keep forever, which one would it be?",
+    "Imagine we are opening a tiny cozy bookstore-cafe together—what is the signature drink you insist on putting on the menu?",
+    "If our future home had one secret room dedicated purely to something fun we both love, what is behind that door?",
+    "Suppose we got stuck in an airport terminal for six hours with zero Wi-Fi—how are we keeping each other entertained?",
+    "If you had to describe the vibe between us using a weather forecast and a dessert, what would the prediction be?",
+    "Imagine we swapped lives and daily routines for 24 hours—what is the first thing you would struggle with in my day?"
+  ];
 
   const VIBE_LABELS = {
-    surprise: "🎲 MYSTERY SURPRISE ROUND",
-    us_future: "❤️ US, MEMORIES & FUTURE",
-    playful: "😄 PLAYFUL & FUN",
+    surprise: "🎲 MYSTERY SURPRISE",
+    us_future: "❤️ US & FUTURE",
+    playful: "😄 PLAYFUL & CREATIVE",
     wyr: "🤔 WOULD YOU RATHER",
     culture: "🌎 LIFE & ROOTS",
     deep: "🌙 DEEP & REAL"
@@ -587,9 +535,9 @@
   let partnerAnswer = null;
   let isGenerating = false;
   let usedQuestions = new Set();
+  let lastRoundSummary = "";
   let reqSeq = 0;
 
-  // Mutual readiness state so cards NEVER switch before both finish reading
   let iAmReadyNext = false;
   let partnerReadyNext = false;
   let pendingNextVibe = "surprise";
@@ -605,6 +553,17 @@
       ]
     }
   };
+
+  function ensurePeerLoaded() {
+    return new Promise((resolve, reject) => {
+      if (typeof window.Peer !== "undefined") return resolve();
+      const s = document.createElement("script");
+      s.src = "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js";
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error("Could not load PeerJS library. Check internet connection."));
+      document.head.appendChild(s);
+    });
+  }
 
   window.addEventListener("DOMContentLoaded", () => {
     const params = new URLSearchParams(window.location.search);
@@ -638,16 +597,40 @@
     return out;
   }
 
-  function createRoom() {
+  async function createRoom() {
+    const btn = document.getElementById("createBtn");
+    btn.disabled = true;
+    btn.textContent = "Creating Room... ⏳";
+    document.getElementById("statusText").textContent = "Connecting...";
+
+    try {
+      await ensurePeerLoaded();
+    } catch (e) {
+      alert(e.message);
+      btn.disabled = false;
+      btn.textContent = "Create Private Room ✨";
+      document.getElementById("statusText").textContent = "Lobby";
+      return;
+    }
+
     myName = document.getElementById("playerName").value.trim() || "Player 1";
     isHost = true;
     roomCode = randomCode();
     const peerId = "askreveal-ai-" + roomCode.toLowerCase();
 
-    document.getElementById("createBtn").disabled = true;
     peer = new Peer(peerId, peerConfig);
 
+    const openTimeout = setTimeout(() => {
+      if (document.getElementById("lobbyScreen").classList.contains("active")) {
+        alert("Signaling server is slow right now. Please tap Create Private Room again!");
+        btn.disabled = false;
+        btn.textContent = "Create Private Room ✨";
+        document.getElementById("statusText").textContent = "Lobby";
+      }
+    }, 9000);
+
     peer.on("open", () => {
+      clearTimeout(openTimeout);
       document.getElementById("displayRoomCode").textContent = roomCode;
       document.getElementById("statusText").textContent = "Waiting...";
       switchScreen("waitScreen");
@@ -659,25 +642,41 @@
     });
 
     peer.on("error", (err) => {
+      clearTimeout(openTimeout);
       if (err.type === "unavailable-id") {
         peer.destroy();
         createRoom();
       } else {
         alert("Connection error: " + err.type);
-        document.getElementById("createBtn").disabled = false;
+        btn.disabled = false;
+        btn.textContent = "Create Private Room ✨";
+        document.getElementById("statusText").textContent = "Lobby";
       }
     });
   }
 
-  function joinRoom() {
-    myName = document.getElementById("playerName").value.trim() || "Player 2";
+  async function joinRoom() {
     const code = document.getElementById("joinCodeInput").value.trim().toUpperCase();
     if (code.length < 4) return alert("Please enter the 4-letter room code!");
 
+    const btn = document.getElementById("joinBtn");
+    btn.disabled = true;
+    btn.textContent = "Joining... ⏳";
+    document.getElementById("statusText").textContent = "Connecting...";
+
+    try {
+      await ensurePeerLoaded();
+    } catch (e) {
+      alert(e.message);
+      btn.disabled = false;
+      btn.textContent = "Join Room 🔗";
+      document.getElementById("statusText").textContent = "Lobby";
+      return;
+    }
+
+    myName = document.getElementById("playerName").value.trim() || "Player 2";
     isHost = false;
     roomCode = code;
-    document.getElementById("joinBtn").disabled = true;
-    document.getElementById("statusText").textContent = "Connecting...";
 
     peer = new Peer(undefined, peerConfig);
     peer.on("open", () => {
@@ -687,7 +686,8 @@
 
     peer.on("error", () => {
       alert("Could not find that room! Check the code and make sure your partner has the room open.");
-      document.getElementById("joinBtn").disabled = false;
+      btn.disabled = false;
+      btn.textContent = "Join Room 🔗";
       document.getElementById("statusText").textContent = "Lobby";
     });
   }
@@ -746,9 +746,23 @@
 
   function copyInviteLink() {
     const url = window.location.origin + window.location.pathname + "?room=" + roomCode;
-    navigator.clipboard.writeText(url).then(() => {
-      showToast("Direct link copied! Send it to her ❤️");
-    });
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(() => {
+        showToast("Direct link copied! Send it to her ❤️");
+      }).catch(() => fallbackCopy(url));
+    } else {
+      fallbackCopy(url);
+    }
+  }
+
+  function fallbackCopy(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    showToast("Direct link copied! Send it to her ❤️");
   }
 
   function highlightVibeChip(vibe) {
@@ -859,8 +873,8 @@
     partnerReadyNext = false;
     const card = document.getElementById("questionCard");
     card.classList.add("loading");
-    document.getElementById("qCategory").textContent = "✨ LIVE AI GENERATING...";
-    document.getElementById("qText").textContent = reasonText || "Picking a fresh question neither of you has seen...";
+    document.getElementById("qCategory").textContent = "⚡ LIVE AI INVENTING QUESTION...";
+    document.getElementById("qText").textContent = reasonText || "Creating an original, spontaneous question just for you two...";
     document.getElementById("lockBtn").disabled = true;
     document.getElementById("switchBtn").disabled = true;
     document.getElementById("surpriseBtn").disabled = true;
@@ -870,15 +884,15 @@
 
   async function requestLiveQuestion(vibe, mode) {
     const seq = ++reqSeq;
-    let reasonText = "✨ AI is crafting a brand-new question...";
+    let reasonText = "⚡ Live AI is inventing a creative, original question...";
     let toastMsg = "";
 
     if (mode === "switch") {
-      reasonText = "🔀 Switching card... AI is picking a new one!";
-      toastMsg = "🔀 " + myName + " switched the card!";
+      reasonText = "🔀 Generating a brand-new angle from scratch...";
+      toastMsg = "🔀 " + myName + " generated a fresh card!";
     } else if (mode === "surprise") {
-      reasonText = "🎲 Mystery round! AI is choosing a secret topic...";
-      toastMsg = "🎲 Surprise Round!";
+      reasonText = "🎲 Mystery round! AI is dreaming up an unexpected prompt...";
+      toastMsg = "🎲 Creative Surprise Round!";
     }
 
     setGeneratingUI(vibe, reasonText);
@@ -886,84 +900,121 @@
       conn.send({ type: "generating", vibe: vibe, reasonText: reasonText });
     }
 
-    const questionText = await fetchAIQuestion(vibe);
+    const result = await fetchLiveCreativeAI(vibe);
     if (seq !== reqSeq) return;
 
-    usedQuestions.add(questionText);
-    const label = VIBE_LABELS[vibe] || "✨ AI QUESTION";
-    applyNewQuestion(label, questionText);
+    usedQuestions.add(result.text);
+    const baseLabel = VIBE_LABELS[vibe] || "✨ CREATIVE AI";
+    const fullLabel = result.isLive ? `${baseLabel} • ⚡ LIVE AI` : baseLabel;
+
+    applyNewQuestion(fullLabel, result.text);
     if (toastMsg) showToast(toastMsg);
 
     if (conn && conn.open) {
       conn.send({
         type: "question",
         vibe: vibe,
-        vibeLabel: label,
-        text: questionText,
+        vibeLabel: fullLabel,
+        text: result.text,
         toast: toastMsg
       });
     }
   }
 
-  async function fetchAIQuestion(vibe) {
+  function cleanAIOutput(raw) {
+    let out = (raw || "").trim();
+    out = out.replace(/^(Question|Card|Prompt)\s*\d*[:.-]\s*/i, "");
+    out = out.replace(/^["'“”*-\d.)\s]+|["'“”]+$/g, "").trim();
+    // Keep only the first question if AI wrote multiple lines
+    if (out.includes("\n")) {
+      out = out.split("\n").map(s => s.trim()).filter(Boolean)[0] || out;
+    }
+    return out;
+  }
+
+  async function fetchLiveCreativeAI(vibe) {
     const allThemes = ["us_future", "playful", "wyr", "culture", "deep"];
     const actualTheme = vibe === "surprise"
       ? allThemes[Math.floor(Math.random() * allThemes.length)]
       : vibe;
 
-    const prompts = {
-      us_future: "Write ONE warm, sweet, respectful question for a couple getting closer: ask either about their first impressions of each other, a favorite moment talking together so far, or something fun/meaningful they would love to do together in the future.",
-      playful: "Write ONE lighthearted, funny, playful scenario or everyday question for two people who really like each other that sparks laughter and cute banter.",
-      wyr: "Write ONE creative, fun 'Would you rather...' question for a couple getting to know each other's personalities and lifestyle.",
-      culture: "Write ONE warm, engaging question about family traditions, favorite home-cooked meals, languages, daily routines, or hometown memories.",
-      deep: "Write ONE thoughtful, emotionally warm question about feeling appreciated, values, communication, or what brings peace and happiness in a relationship."
+    const creativeTwists = [
+      "Use a vivid imaginative scenario ('Imagine if...', 'Suppose we...', 'If we had to...').",
+      "Ask about a specific hyper-relatable micro-moment or funny hypothetical adventure together.",
+      "Frame it like an intriguing story prompt or playful debate between the two of them.",
+      "Focus on a sensory memory, future dream, or creative 'what if' twist.",
+      "Make it witty, warm, and deeply personal—something they have definitely never been asked before."
+    ];
+    const twist = creativeTwists[Math.floor(Math.random() * creativeTwists.length)];
+
+    const themeGoals = {
+      us_future: "Theme: Romance, building a future together, dreaming about trips/home, or first impressions.",
+      playful: "Theme: Funny, witty, mischievous banter, road trips, snacks, or cute hypothetical chaos.",
+      wyr: "Theme: An imaginative, tough-but-fun 'Would you rather...' dilemma tailored for two people falling for each other.",
+      culture: "Theme: Blending two worlds, food, family traditions, languages, cozy home vibes, and daily rituals.",
+      deep: "Theme: Emotional closeness, feeling safe, unspoken appreciation, values, and peace of heart."
     };
 
-    const recent = Array.from(usedQuestions).slice(-10).join(" || ");
-    const seed = Math.floor(Math.random() * 1000000);
+    const recent = Array.from(usedQuestions).slice(-8).join(" | ");
+    const seed = Math.floor(Math.random() * 9999999);
+    const contextHint = lastRoundSummary
+      ? `Optional subtle inspiration from their last answers (do NOT force it, just keep the vibe): ${lastRoundSummary}`
+      : "";
+
+    const systemPrompt = "You are a brilliant, witty, warm relationship-game writer creating spontaneous, never-before-seen card prompts for a couple. Never use generic cliche questions like 'what is your favorite color/movie'. Make every question imaginative, vivid, clean, wholesome, and under 28 words. Output ONLY the single question with zero quotes or intro.";
+    const userPrompt = `${themeGoals[actualTheme] || themeGoals.playful} ${twist} ${contextHint} (Unique seed: ${seed}). Do NOT repeat: ${recent || "none"}`;
+
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 5500);
+    const timeoutId = setTimeout(() => controller.abort(), 11000);
+
+    // Endpoint 1: Pollinations OpenAI-compatible POST
+    const req1 = fetch("https://text.pollinations.ai/openai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: "openai",
+        seed: seed,
+        temperature: 1.1,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ]
+      })
+    }).then(async r => {
+      if (!r.ok) throw new Error("req1 fail");
+      const j = await r.json();
+      const txt = cleanAIOutput(j?.choices?.[0]?.message?.content);
+      if (txt.length < 15 || txt.length > 240 || usedQuestions.has(txt)) throw new Error("invalid");
+      return txt;
+    });
+
+    // Endpoint 2: Pollinations direct fast GET with Mistral/OpenAI race
+    const fullGetPrompt = encodeURIComponent(`${systemPrompt}\n\n${userPrompt}`);
+    const req2 = fetch(`https://text.pollinations.ai/${fullGetPrompt}?model=mistral&seed=${seed + 7}&temperature=1.1`, {
+      signal: controller.signal
+    }).then(async r => {
+      if (!r.ok) throw new Error("req2 fail");
+      const raw = await r.text();
+      const txt = cleanAIOutput(raw);
+      if (txt.length < 15 || txt.length > 240 || usedQuestions.has(txt)) throw new Error("invalid");
+      return txt;
+    });
 
     try {
-      const res = await fetch("https://text.pollinations.ai/openai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({
-          model: "openai",
-          seed: seed,
-          messages: [
-            {
-              role: "system",
-              content: "You generate ONE concise card-game question (under 24 words) for a couple. Keep it completely clean, warm, wholesome, and natural. Output ONLY the question itself—no quotes, no numbering, no intro."
-            },
-            {
-              role: "user",
-              content: `${prompts[actualTheme] || prompts.playful}\nSeed: ${seed}. Avoid repeating: ${recent || "none"}`
-            }
-          ]
-        })
-      });
-      clearTimeout(timer);
-      if (!res.ok) throw new Error("Bad status");
-      const json = await res.json();
-      let out = (json?.choices?.[0]?.message?.content || "").trim();
-      out = out.replace(/^["'“”*-\d.)\s]+|["'“”]+$/g, "").trim();
-      if (out.length > 12 && out.length < 220 && !usedQuestions.has(out)) {
-        return out;
-      }
-      throw new Error("Fallback needed");
+      const winnerText = await Promise.any([req1, req2]);
+      clearTimeout(timeoutId);
+      controller.abort();
+      return { text: winnerText, isLive: true };
     } catch (err) {
-      clearTimeout(timer);
-      return pickBackupQuestion(actualTheme);
+      clearTimeout(timeoutId);
+      const unused = EMERGENCY_CREATIVE.filter(q => !usedQuestions.has(q));
+      const pool = unused.length > 0 ? unused : EMERGENCY_CREATIVE;
+      return {
+        text: pool[Math.floor(Math.random() * pool.length)],
+        isLive: false
+      };
     }
-  }
-
-  function pickBackupQuestion(theme) {
-    const pool = BACKUP_DECK[theme] || BACKUP_DECK.us_future;
-    const unused = pool.filter(q => !usedQuestions.has(q));
-    const list = unused.length > 0 ? unused : pool;
-    return list[Math.floor(Math.random() * list.length)];
   }
 
   function toggleCustomQ() {
@@ -1053,6 +1104,7 @@
   function checkReveal() {
     updatePartnerState();
     if (myAnswer !== null && partnerAnswer !== null) {
+      lastRoundSummary = `${myName} said "${myAnswer.slice(0, 70)}", ${partnerName} said "${partnerAnswer.slice(0, 70)}"`;
       iAmReadyNext = false;
       partnerReadyNext = false;
       updateReadyBannerUI();
