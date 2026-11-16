@@ -4,13 +4,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Ask & Reveal • Live Creative AI ✨</title>
+  <title>Ask & Reveal • Permanent Rooms & Live AI ✨</title>
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
   <style>
     :root {
       --bg1: #0f172a;
       --bg2: #1e1b4b;
-      --card: rgba(30, 41, 59, 0.82);
+      --card: rgba(30, 41, 59, 0.84);
       --border: rgba(255, 255, 255, 0.13);
       --accent: #ec4899;
       --accent2: #8b5cf6;
@@ -34,7 +35,7 @@
 
     .app {
       width: 100%;
-      max-width: 490px;
+      max-width: 500px;
       background: var(--card);
       backdrop-filter: blur(18px);
       -webkit-backdrop-filter: blur(18px);
@@ -66,7 +67,7 @@
     .sub-logo {
       font-size: 0.7rem;
       color: var(--muted);
-      letter-spacing: 0.4px;
+      letter-spacing: 0.35px;
     }
 
     .header-actions {
@@ -91,8 +92,8 @@
     .room-pill:active { transform: scale(0.96); }
 
     .status-badge {
-      font-size: 0.75rem;
-      padding: 5px 11px;
+      font-size: 0.74rem;
+      padding: 5px 10px;
       border-radius: 999px;
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid var(--border);
@@ -105,15 +106,15 @@
     .leave-btn {
       font-size: 0.72rem;
       font-weight: 700;
-      padding: 5px 9px;
+      padding: 5px 10px;
       border-radius: 999px;
-      background: rgba(239, 68, 68, 0.14);
-      border: 1px solid rgba(239, 68, 68, 0.35);
-      color: #fca5a5;
+      background: rgba(139, 92, 246, 0.16);
+      border: 1px solid rgba(139, 92, 246, 0.4);
+      color: #ddd6fe;
       cursor: pointer;
       transition: background 0.2s, transform 0.14s;
     }
-    .leave-btn:hover { background: rgba(239, 68, 68, 0.25); }
+    .leave-btn:hover { background: rgba(139, 92, 246, 0.28); }
     .leave-btn:active { transform: scale(0.96); }
 
     .dot {
@@ -121,10 +122,12 @@
       height: 8px;
       border-radius: 50%;
       background: var(--gold);
+      flex-shrink: 0;
     }
     .dot.online { background: var(--success); box-shadow: 0 0 8px var(--success); }
+    .dot.saved { background: #38bdf8; box-shadow: 0 0 7px rgba(56, 189, 248, 0.7); }
 
-    .screen { display: none; animation: fadeIn 0.28s ease; }
+    .screen { display: none; animation: fadeIn 0.26s ease; }
     .screen.active { display: block; }
 
     @keyframes fadeIn {
@@ -173,6 +176,14 @@
       color: var(--text);
     }
 
+    .btn-subtle {
+      background: transparent;
+      border: 1px dashed rgba(255, 255, 255, 0.16);
+      color: var(--muted);
+      font-size: 0.8rem;
+      padding: 9px 12px;
+    }
+
     .btn-surprise {
       background: linear-gradient(135deg, #f59e0b, #ec4899);
     }
@@ -188,8 +199,119 @@
     .divider {
       text-align: center;
       color: var(--muted);
+      font-size: 0.76rem;
+      margin: 13px 0;
+      letter-spacing: 0.5px;
+    }
+
+    /* Saved Permanent Rooms History */
+    .saved-rooms-wrap {
+      margin-top: 6px;
+      margin-bottom: 14px;
+      background: rgba(15, 23, 42, 0.55);
+      border: 1px solid rgba(244, 114, 182, 0.26);
+      border-radius: 16px;
+      padding: 12px;
+    }
+
+    .saved-rooms-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       font-size: 0.78rem;
-      margin: 12px 0;
+      font-weight: 700;
+      color: #f9a8d4;
+      margin-bottom: 9px;
+    }
+
+    .saved-rooms-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 215px;
+      overflow-y: auto;
+    }
+
+    .saved-room-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 11px;
+      border-radius: 12px;
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid var(--border);
+    }
+
+    .saved-room-info {
+      min-width: 0;
+      flex: 1;
+      cursor: pointer;
+    }
+
+    .saved-room-top {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 3px;
+      flex-wrap: wrap;
+    }
+
+    .saved-code-tag {
+      font-size: 0.78rem;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      color: #f472b6;
+      background: rgba(244, 114, 182, 0.14);
+      padding: 2px 7px;
+      border-radius: 6px;
+    }
+
+    .saved-partner-name {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .saved-room-sub {
+      font-size: 0.73rem;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .saved-room-actions {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .mini-btn {
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      border-radius: 9px;
+      padding: 6px 9px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.12s, background 0.2s;
+    }
+    .mini-btn:active { transform: scale(0.95); }
+    .mini-btn.primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-color: transparent;
+      color: white;
+    }
+    .mini-btn.danger {
+      color: #fca5a5;
+      border-color: rgba(239, 68, 68, 0.3);
+      background: rgba(239, 68, 68, 0.1);
     }
 
     .room-box {
@@ -198,15 +320,50 @@
       border-radius: 16px;
       padding: 16px;
       text-align: center;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
 
     .room-code {
-      font-size: 2rem;
+      font-size: 1.9rem;
       font-weight: 900;
-      letter-spacing: 6px;
+      letter-spacing: 5px;
       color: #f472b6;
       margin: 6px 0 10px;
+    }
+
+    .invite-strip {
+      display: none;
+      background: rgba(15, 23, 42, 0.74);
+      border: 1px dashed rgba(244, 114, 182, 0.48);
+      border-radius: 15px;
+      padding: 11px 13px;
+      margin-bottom: 12px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .invite-strip.visible { display: flex; }
+
+    .invite-strip-text {
+      font-size: 0.78rem;
+      color: #e2e8f0;
+      line-height: 1.35;
+      flex: 1;
+      min-width: 170px;
+    }
+
+    .invite-strip-code {
+      font-weight: 900;
+      color: #f472b6;
+      letter-spacing: 1.5px;
+    }
+
+    .rejoin-slots {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
     }
 
     .vibes {
@@ -349,6 +506,8 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
     }
 
     .reactions { display: flex; gap: 5px; }
@@ -362,7 +521,7 @@
     }
 
     .chat-messages {
-      max-height: 170px;
+      max-height: 185px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
@@ -408,6 +567,14 @@
     .custom-q-box input { margin-bottom: 0; }
     .custom-q-box button { width: auto; margin-bottom: 0; white-space: nowrap; }
 
+    .perm-hint {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+
     .toast {
       position: fixed;
       bottom: 20px;
@@ -436,57 +603,89 @@
   <div class="header">
     <div class="logo-wrap">
       <div class="logo">Ask & Reveal ✨</div>
-      <div class="sub-logo">v2.3 Auto-Save & Reconnect ❤️</div>
+      <div class="sub-logo">v3.0 Permanent Rooms • Never Expires ♾️❤️</div>
     </div>
     <div class="header-actions">
-      <button type="button" class="room-pill" id="headerRoomBtn" onclick="copyInviteLink()" title="Copy invite link" style="display: none;">🔗 ----</button>
+      <button type="button" class="room-pill" id="headerRoomBtn" onclick="copyInviteLink()" title="Copy permanent room link" style="display: none;">🔗 ----</button>
       <div class="status-badge">
         <span class="dot" id="statusDot"></span>
         <span id="statusText">Lobby</span>
       </div>
-      <button type="button" class="leave-btn" id="leaveRoomBtn" onclick="leaveRoom()" title="Leave room" style="display: none;">Leave ✕</button>
+      <button type="button" class="leave-btn" id="leaveRoomBtn" onclick="leaveRoom()" title="Back to Rooms Lobby (Room stays saved forever)" style="display: none;">Rooms 🏠</button>
     </div>
   </div>
 
   <!-- LOBBY SCREEN -->
   <div class="screen active" id="lobbyScreen">
-    <label>Your Name</label>
-    <input type="text" id="playerName" placeholder="Type your name..." maxlength="20" oninput="savePlayerNamePref()" />
+    <label for="playerName">Your Name</label>
+    <input type="text" id="playerName" placeholder="Type your name..." maxlength="22" oninput="savePlayerNamePref()" />
 
-    <button class="btn" id="createBtn" onclick="createRoom()">Create Private Room ✨</button>
+    <button type="button" class="btn" id="createBtn" onclick="createRoom()">Create Permanent Room ✨</button>
 
-    <div class="divider">— OR JOIN WITH CODE —</div>
+    <!-- SAVED PERMANENT ROOMS HISTORY -->
+    <div class="saved-rooms-wrap" id="savedRoomsWrap" style="display: none;">
+      <div class="saved-rooms-header">
+        <span>📌 Saved Permanent Rooms (History)</span>
+        <span style="font-weight: 500; color: var(--muted);">Never expires ♾️</span>
+      </div>
+      <div class="saved-rooms-list" id="savedRoomsList"></div>
+    </div>
 
-    <label>Room Code</label>
-    <input type="text" id="joinCodeInput" placeholder="4-LETTER CODE" maxlength="6" style="text-transform: uppercase; letter-spacing: 3px; text-align: center; font-weight: 700;" onkeydown="if(event.key==='Enter') joinRoom()" />
-    <button class="btn btn-secondary" id="joinBtn" onclick="joinRoom()">Join Room 🔗</button>
+    <div class="divider">— OR ENTER PERMANENT ROOM CODE —</div>
+
+    <label for="joinCodeInput">Room Code</label>
+    <input type="text" id="joinCodeInput" placeholder="ROOM CODE" maxlength="8" style="text-transform: uppercase; letter-spacing: 3px; text-align: center; font-weight: 700;" onkeydown="if(event.key==='Enter') joinRoom()" />
+    <button type="button" class="btn btn-secondary" id="joinBtn" onclick="joinRoom()">Open / Join Room 🔗</button>
+    <p class="perm-hint">Every room stays saved permanently. Re-enter anytime from History or from your invite link—even after clearing Chrome!</p>
   </div>
 
-  <!-- WAITING SCREEN -->
+  <!-- DIRECT LINK / REJOIN SCREEN (Used when opening ?room=CODE on a fresh/cleared browser) -->
   <div class="screen" id="waitScreen">
     <div class="room-box">
-      <div style="font-size: 0.84rem; color: var(--muted);">Send this direct link or code:</div>
+      <div style="font-size: 0.84rem; color: var(--muted);" id="rejoinSubtitle">Permanent Room Link</div>
       <div class="room-code" id="displayRoomCode">----</div>
-      <button class="btn btn-secondary" onclick="copyInviteLink()" style="margin-bottom: 0;">Copy Direct Invite Link 🔗</button>
+      <div id="rejoinSyncStatus" style="font-size: 0.8rem; color: #cbd5e1; margin-bottom: 12px;">Syncing saved room state from cloud... ☁️</div>
+
+      <!-- 1-Tap Rejoin Slots when both players already exist in cloud state -->
+      <div class="rejoin-slots" id="rejoinSlotsBox" style="display: none;"></div>
+
+      <div id="rejoinCustomBox">
+        <input type="text" id="rejoinNameInput" placeholder="Type your name to enter..." maxlength="22" style="margin-bottom: 10px; text-align: center;" onkeydown="if(event.key==='Enter') confirmLinkJoin()" />
+        <button type="button" class="btn" id="rejoinEnterBtn" onclick="confirmLinkJoin()" style="margin-bottom: 8px;">Enter Permanent Room ✨</button>
+      </div>
+
+      <!-- Subtle creator recovery button when only p1 exists so first-time guest never taps it by mistake -->
+      <div id="creatorRecoverWrap" style="display: none; margin-bottom: 8px;"></div>
+
+      <button type="button" class="btn btn-secondary" onclick="copyInviteLink()" style="margin-bottom: 0;">Copy Direct Invite Link 🔗</button>
     </div>
-    <p style="text-align: center; color: var(--muted); font-size: 0.88rem;">Waiting for your partner to join... ⏳</p>
+    <button type="button" class="btn btn-secondary" onclick="leaveRoom()" style="margin-bottom: 0;">← Back to All Saved Rooms</button>
   </div>
 
   <!-- GAME SCREEN -->
   <div class="screen" id="gameScreen">
+    <!-- Permanent Invite Banner (shown until partner joins) -->
+    <div class="invite-strip" id="inviteStrip">
+      <div class="invite-strip-text">
+        ♾️ Permanent Room <span class="invite-strip-code" id="stripRoomCode">----</span><br />
+        <span style="color: var(--muted); font-size: 0.73rem;">Send this link once—works forever, even if Chrome is cleared!</span>
+      </div>
+      <button type="button" class="mini-btn primary" onclick="copyInviteLink()">Copy Link 🔗</button>
+    </div>
+
     <div class="vibes" id="vibeBar">
       <div class="vibe-chip surprise-chip active" data-vibe="surprise" onclick="selectVibe('surprise', this)">🎲 Surprise Me</div>
       <div class="vibe-chip" data-vibe="us_future" onclick="selectVibe('us_future', this)">❤️ Us & Future</div>
-      <div class="vibe-chip" data-vibe="playful" onclick="selectVibe('playful', this)">😄 Playful</div>
+      <div class="vibe-chip" data-vibe="playful" onclick="selectVibe('playful', this)">😊 Playful</div>
       <div class="vibe-chip" data-vibe="wyr" onclick="selectVibe('wyr', this)">🤔 Would You Rather</div>
-      <div class="vibe-chip" data-vibe="culture" onclick="selectVibe('culture', this)">🌎 Life & Roots</div>
+      <div class="vibe-chip" data-vibe="culture" onclick="selectVibe('culture', this)">🌍 Life & Roots</div>
       <div class="vibe-chip" data-vibe="deep" onclick="selectVibe('deep', this)">🌙 Deep</div>
       <div class="vibe-chip" onclick="toggleCustomQ()">✍️ Custom</div>
     </div>
 
     <div class="custom-q-box" id="customQBox">
       <input type="text" id="customQInput" placeholder="Write your own secret question..." onkeydown="if(event.key==='Enter') sendCustomQuestion()" />
-      <button class="btn" onclick="sendCustomQuestion()">Ask</button>
+      <button type="button" class="btn" onclick="sendCustomQuestion()">Ask</button>
     </div>
 
     <div class="question-card" id="questionCard">
@@ -496,13 +695,13 @@
 
     <!-- ANSWERING PHASE -->
     <div id="answerPhase">
-      <div class="partner-state" id="partnerState">Both answers stay hidden until you both lock in 💭</div>
+      <div class="partner-state" id="partnerState">Both answers stay hidden until you both lock in 💬</div>
       <textarea id="myAnswerInput" placeholder="Type your secret answer here..." oninput="handleDraftInput()"></textarea>
-      <button class="btn" id="lockBtn" onclick="lockAnswer()">Lock In Answer 🔒</button>
+      <button type="button" class="btn" id="lockBtn" onclick="lockAnswer()">Lock In Answer 🔒</button>
 
       <div class="action-row">
-        <button class="btn btn-secondary" id="switchBtn" onclick="switchCard()">Switch Card 🔀</button>
-        <button class="btn btn-surprise" id="surpriseBtn" onclick="triggerSurpriseRound()">Surprise Round 🎲</button>
+        <button type="button" class="btn btn-secondary" id="switchBtn" onclick="switchCard()">Switch Card 🔀</button>
+        <button type="button" class="btn btn-surprise" id="surpriseBtn" onclick="triggerSurpriseRound()">Surprise Round 🎲</button>
       </div>
     </div>
 
@@ -522,26 +721,26 @@
       <div class="ready-banner" id="readyBanner"></div>
 
       <div class="action-row">
-        <button class="btn" id="nextCardBtn" onclick="nextAIQuestion()">Ready for Next ➡️</button>
-        <button class="btn btn-surprise" id="nextSurpriseBtn" onclick="triggerSurpriseRound()">Surprise Next 🎲</button>
+        <button type="button" class="btn" id="nextCardBtn" onclick="nextAIQuestion()">Ready for Next ➡️</button>
+        <button type="button" class="btn btn-surprise" id="nextSurpriseBtn" onclick="triggerSurpriseRound()">Surprise Next 🎲</button>
       </div>
     </div>
 
     <!-- PERSISTENT LIVE CHAT -->
     <div class="chat-box">
       <div class="chat-title">
-        <span>Live Chat 💬 (stays saved across cards & refreshes)</span>
+        <span>Live Chat 💬 (saved permanently in room)</span>
         <div class="reactions">
-          <button class="react-btn" onclick="sendChat('❤️')">❤️</button>
-          <button class="react-btn" onclick="sendChat('😂')">😂</button>
-          <button class="react-btn" onclick="sendChat('🥺')">🥺</button>
-          <button class="react-btn" onclick="sendChat('👀')">👀</button>
+          <button type="button" class="react-btn" onclick="sendChat('❤️')">❤️</button>
+          <button type="button" class="react-btn" onclick="sendChat('😂')">😂</button>
+          <button type="button" class="react-btn" onclick="sendChat('🥺')">🥺</button>
+          <button type="button" class="react-btn" onclick="sendChat('👀')">👀</button>
         </div>
       </div>
       <div class="chat-messages" id="chatMessages"></div>
       <div class="chat-input-row">
-        <input type="text" id="chatInput" placeholder="Write a comment or reply here... 😄" onkeydown="if(event.key==='Enter') sendChat()" />
-        <button class="btn" onclick="sendChat()">Send</button>
+        <input type="text" id="chatInput" placeholder="Write a comment or reply here... 😊" onkeydown="if(event.key==='Enter') sendChat()" />
+        <button type="button" class="btn" onclick="sendChat()">Send</button>
       </div>
     </div>
   </div>
@@ -564,51 +763,28 @@
   const VIBE_LABELS = {
     surprise: "🎲 MYSTERY SURPRISE",
     us_future: "❤️ US & FUTURE",
-    playful: "😄 PLAYFUL & CREATIVE",
+    playful: "😊 PLAYFUL & CREATIVE",
     wyr: "🤔 WOULD YOU RATHER",
-    culture: "🌎 LIFE & ROOTS",
+    culture: "🌍 LIFE & ROOTS",
     deep: "🌙 DEEP & REAL"
   };
 
-  const SESSION_KEY = "askreveal_active_session_v2";
-  const BACKUP_KEY = "askreveal_backup_session_v2";
+  // Permanent Storage Keys (Zero Expiration)
+  const ROOMS_MAP_KEY = "askreveal_perm_rooms_v3";
+  const ACTIVE_ROOM_KEY = "askreveal_active_room_code_v3";
+  const TAB_SESSION_KEY = "askreveal_tab_session_v3";
   const NAME_KEY = "askreveal_saved_name_v2";
-  const HOST_ALIVE_PREFIX = "askreveal_host_tab_alive_";
+  const LEGACY_BACKUP_KEY = "askreveal_backup_session_v2";
+  const TAB_ROLE_HEARTBEAT_PREFIX = "askreveal_tab_alive_v3_";
 
-  let peer = null;
-  let conn = null;
-  let isHost = false;
-  let isSessionActive = false;
-  let hasConnectedOnce = false;
-  let currentScreenId = "lobbyScreen";
-  let myName = "Me";
-  let partnerName = "Partner";
-  let roomCode = "";
-  let currentVibe = "surprise";
-  let roundUpdatedAt = 0;
-  let hasActiveQuestion = false;
-  let myAnswer = null;
-  let myDraftAnswer = "";
-  let partnerAnswer = null;
-  let isGenerating = false;
-  let resumeGenerateNeeded = false;
-  let usedQuestions = new Set();
-  let lastRoundSummary = "";
-  let reqSeq = 0;
+  const IDB_NAME = "AskRevealPermanentVault";
+  const IDB_STORE = "rooms";
 
-  let iAmReadyNext = false;
-  let partnerReadyNext = false;
-  let pendingNextVibe = "surprise";
-  let pendingNextMode = "next";
-  let pendingCustomText = null;
-
-  let chatHistory = [];
-  let seenChatIds = new Set();
-
-  let hostRetryTimer = null;
-  let guestReconnectTimer = null;
-  let connectAttemptTimeout = null;
-  let hostAliveInterval = null;
+  // Redundant Cloud MQTT WSS Brokers (Retained Room State + Live Pub/Sub)
+  const MQTT_BROKERS = [
+    "wss://broker.emqx.io:8084/mqtt",
+    "wss://broker.hivemq.com:8884/mqtt"
+  ];
 
   const peerConfig = {
     config: {
@@ -620,24 +796,452 @@
     }
   };
 
-  // --- Safe Storage & URL Helpers ---
-  function safeSessionGet(key) {
-    try { return window.sessionStorage.getItem(key); } catch (e) { return null; }
+  const clientInstanceId = "c_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7);
+
+  let currentScreenId = "lobbyScreen";
+  let isSessionActive = false;
+  let roomCode = "";
+  let myRole = "p1"; // "p1" (Creator/Host slot) or "p2" (Guest/Partner slot)
+  let myName = "Me";
+  let myDraftAnswer = "";
+  let roleEnteredWithoutCloud = false;
+  let isGenerating = false;
+  let reqSeq = 0;
+
+  // Canonical synchronized room document
+  let roomDoc = null;
+  let lastPublishedDigest = "";
+
+  // Transports: Dual-Broker MQTT + Dual-Slot Symmetric PeerJS
+  let mqttClients = [];
+  let mqttConnectedCount = 0;
+  let peer = null;
+  let peerSlot = null; // "a" or "b"
+  let conn = null;
+  let partnerLastLiveTs = 0;
+
+  let pendingLinkRoomCode = "";
+  let pendingCloudDoc = null;
+  let pendingDeleteConfirmCode = "";
+  let pendingDeleteTimer = null;
+
+  let watchdogTimer = null;
+  let presenceTimer = null;
+  let tabHeartbeatTimer = null;
+  let peerConnectTimer = null;
+  let firstQuestionWaitTimer = null;
+
+  // --- Safe Storage + IndexedDB Permanent Mirror ---
+  function safeSessionGet(k) {
+    try { return window.sessionStorage.getItem(k); } catch (e) { return null; }
   }
-  function safeSessionSet(key, val) {
-    try { window.sessionStorage.setItem(key, val); } catch (e) {}
+  function safeSessionSet(k, v) {
+    try { window.sessionStorage.setItem(k, v); } catch (e) {}
   }
-  function safeSessionRemove(key) {
-    try { window.sessionStorage.removeItem(key); } catch (e) {}
+  function safeSessionRemove(k) {
+    try { window.sessionStorage.removeItem(k); } catch (e) {}
   }
-  function safeLocalGet(key) {
-    try { return window.localStorage.getItem(key); } catch (e) { return null; }
+  function safeLocalGet(k) {
+    try { return window.localStorage.getItem(k); } catch (e) { return null; }
   }
-  function safeLocalSet(key, val) {
-    try { window.localStorage.setItem(key, val); } catch (e) {}
+  function safeLocalSet(k, v) {
+    try { window.localStorage.setItem(k, v); } catch (e) {}
   }
-  function safeLocalRemove(key) {
-    try { window.localStorage.removeItem(key); } catch (e) {}
+  function safeLocalRemove(k) {
+    try { window.localStorage.removeItem(k); } catch (e) {}
+  }
+
+  function openPermDB() {
+    return new Promise((resolve) => {
+      try {
+        if (!window.indexedDB) return resolve(null);
+        const req = window.indexedDB.open(IDB_NAME, 1);
+        req.onupgradeneeded = (ev) => {
+          const db = ev.target.result;
+          if (!db.objectStoreNames.contains(IDB_STORE)) {
+            db.createObjectStore(IDB_STORE, { keyPath: "roomCode" });
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve(null);
+      } catch (e) {
+        resolve(null);
+      }
+    });
+  }
+
+  async function idbSaveRoomRecord(record) {
+    if (!record || !record.roomCode) return;
+    const db = await openPermDB();
+    if (!db) return;
+    try {
+      const tx = db.transaction(IDB_STORE, "readwrite");
+      tx.objectStore(IDB_STORE).put(record);
+    } catch (e) {}
+  }
+
+  async function idbDeleteRoomRecord(code) {
+    const db = await openPermDB();
+    if (!db) return;
+    try {
+      const tx = db.transaction(IDB_STORE, "readwrite");
+      tx.objectStore(IDB_STORE).delete(code);
+    } catch (e) {}
+  }
+
+  async function idbLoadAllRooms() {
+    const db = await openPermDB();
+    if (!db) return [];
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(IDB_STORE, "readonly");
+        const req = tx.objectStore(IDB_STORE).getAll();
+        req.onsuccess = () => resolve(Array.isArray(req.result) ? req.result : []);
+        req.onerror = () => resolve([]);
+      } catch (e) {
+        resolve([]);
+      }
+    });
+  }
+
+  function loadRoomsMap() {
+    const raw = safeLocalGet(ROOMS_MAP_KEY);
+    if (!raw) return {};
+    try {
+      const parsed = JSON.parse(raw);
+      return (parsed && typeof parsed === "object") ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function writeRoomsMap(mapObj) {
+    safeLocalSet(ROOMS_MAP_KEY, JSON.stringify(mapObj));
+  }
+
+  // Migrate legacy v2 room if user had one before upgrading
+  function migrateLegacyV2IfPresent() {
+    const rawLegacy = safeLocalGet(LEGACY_BACKUP_KEY);
+    if (!rawLegacy) return;
+    try {
+      const old = JSON.parse(rawLegacy);
+      if (old && old.roomCode) {
+        const map = loadRoomsMap();
+        const code = String(old.roomCode).toUpperCase();
+        if (!map[code]) {
+          const role = old.isHost ? "p1" : "p2";
+          const otherRole = role === "p1" ? "p2" : "p1";
+          const doc = createEmptyRoomDoc(code);
+          doc.players[role] = { name: old.myName || (role === "p1" ? "Player 1" : "Player 2"), nameUpdatedAt: old.savedAt || Date.now(), lastSeen: old.savedAt || Date.now() };
+          if (old.partnerName && old.partnerName !== "Partner") {
+            doc.players[otherRole] = { name: old.partnerName, nameUpdatedAt: old.savedAt || Date.now(), lastSeen: old.savedAt || Date.now() };
+          }
+          if (old.hasActiveQuestion && old.qText) {
+            doc.round = {
+              id: "r_legacy_" + (old.roundUpdatedAt || Date.now()),
+              seq: 1,
+              createdAt: old.roundUpdatedAt || Date.now(),
+              hasActiveQuestion: true,
+              vibe: old.currentVibe || "surprise",
+              vibeLabel: old.qCategory || "✨ CREATIVE AI",
+              qText: old.qText,
+              answers: {
+                [role]: old.myAnswer !== undefined ? old.myAnswer : null,
+                [otherRole]: old.partnerAnswer !== undefined ? old.partnerAnswer : null
+              },
+              answerTs: {
+                [role]: old.myAnswer ? (old.savedAt || Date.now()) : 0,
+                [otherRole]: old.partnerAnswer ? (old.savedAt || Date.now()) : 0
+              },
+              readyNext: {
+                [role]: Boolean(old.iAmReadyNext),
+                [otherRole]: Boolean(old.partnerReadyNext)
+              },
+              pendingNext: {
+                vibe: old.pendingNextVibe || "surprise",
+                mode: old.pendingNextMode || "next",
+                customText: old.pendingCustomText || null,
+                updatedAt: old.savedAt || Date.now()
+              }
+            };
+          }
+          if (Array.isArray(old.chatHistory)) {
+            doc.chatHistory = old.chatHistory.map(c => ({
+              id: c.id || ("m_" + (c.ts || Date.now())),
+              kind: c.kind || "msg",
+              senderRole: c.senderRole === "host" ? "p1" : (c.senderRole === "guest" ? "p2" : (c.senderRole || role)),
+              senderName: c.senderName || "",
+              text: c.text || "",
+              ts: c.ts || Date.now()
+            }));
+          }
+          map[code] = {
+            roomCode: code,
+            myRole: role,
+            myName: old.myName || "",
+            myDraftAnswer: old.myDraftAnswer || "",
+            lastVisitedAt: old.savedAt || Date.now(),
+            roomDoc: doc
+          };
+          writeRoomsMap(map);
+          idbSaveRoomRecord(map[code]);
+        }
+      }
+      safeLocalRemove(LEGACY_BACKUP_KEY);
+    } catch (e) {}
+  }
+
+  async function hydrateRoomsMapFromIDB() {
+    const idbRecords = await idbLoadAllRooms();
+    if (!idbRecords.length) return;
+    const map = loadRoomsMap();
+    let changed = false;
+    for (let i = 0; i < idbRecords.length; i++) {
+      const rec = idbRecords[i];
+      if (!rec || !rec.roomCode) continue;
+      const existing = map[rec.roomCode];
+      if (!existing) {
+        map[rec.roomCode] = rec;
+        changed = true;
+      } else if (rec.roomDoc && existing.roomDoc) {
+        const merged = mergeRoomDocs(existing.roomDoc, rec.roomDoc);
+        if (computeDocDigest(merged) !== computeDocDigest(existing.roomDoc)) {
+          existing.roomDoc = merged;
+          changed = true;
+        }
+      }
+    }
+    if (changed) {
+      writeRoomsMap(map);
+      if (currentScreenId === "lobbyScreen") {
+        renderSavedRoomsList();
+      }
+    }
+  }
+
+  // --- Canonical Room State & Conflict-Free Merge (CRDT-style) ---
+  function createEmptyRoomDoc(code) {
+    const now = Date.now();
+    return {
+      version: 3,
+      roomCode: code,
+      createdAt: now,
+      updatedAt: now,
+      players: {
+        p1: null,
+        p2: null
+      },
+      round: {
+        id: "r_init_0",
+        seq: 0,
+        createdAt: 0,
+        hasActiveQuestion: false,
+        vibe: "surprise",
+        vibeLabel: "✨ LIVE AI THINKING...",
+        qText: "Crafting a spontaneous creative question...",
+        answers: { p1: null, p2: null },
+        answerTs: { p1: 0, p2: 0 },
+        readyNext: { p1: false, p2: false },
+        pendingNext: { vibe: "surprise", mode: "next", customText: null, updatedAt: 0 }
+      },
+      chatHistory: [],
+      usedQuestions: [],
+      lastRoundSummary: ""
+    };
+  }
+
+  function normalizeChatEntry(c) {
+    if (!c || !c.id) return null;
+    let role = c.senderRole;
+    if (role === "host") role = "p1";
+    if (role === "guest") role = "p2";
+    return {
+      id: String(c.id),
+      kind: c.kind === "sep" ? "sep" : "msg",
+      senderRole: role === "p2" ? "p2" : "p1",
+      senderName: c.senderName ? String(c.senderName) : "",
+      text: c.text ? String(c.text) : "",
+      ts: Number(c.ts) || 0
+    };
+  }
+
+  function mergePlayerSlot(a, b) {
+    const aHas = a && a.name && String(a.name).trim();
+    const bHas = b && b.name && String(b.name).trim();
+    if (!aHas && !bHas) return null;
+    if (aHas && !bHas) return { name: String(a.name).trim(), nameUpdatedAt: Number(a.nameUpdatedAt) || 0, lastSeen: Number(a.lastSeen) || 0 };
+    if (!aHas && bHas) return { name: String(b.name).trim(), nameUpdatedAt: Number(b.nameUpdatedAt) || 0, lastSeen: Number(b.lastSeen) || 0 };
+    const aTs = Number(a.nameUpdatedAt) || 0;
+    const bTs = Number(b.nameUpdatedAt) || 0;
+    const winnerName = bTs > aTs ? String(b.name).trim() : String(a.name).trim();
+    return {
+      name: winnerName,
+      nameUpdatedAt: Math.max(aTs, bTs),
+      lastSeen: Math.max(Number(a.lastSeen) || 0, Number(b.lastSeen) || 0)
+    };
+  }
+
+  function compareRoundFreshness(rA, rB) {
+    const seqA = Number(rA?.seq) || 0;
+    const seqB = Number(rB?.seq) || 0;
+    if (seqA !== seqB) return seqA > seqB ? 1 : -1;
+    const actA = rA?.hasActiveQuestion ? 1 : 0;
+    const actB = rB?.hasActiveQuestion ? 1 : 0;
+    if (actA !== actB) return actA > actB ? 1 : -1;
+    const tsA = Number(rA?.createdAt) || 0;
+    const tsB = Number(rB?.createdAt) || 0;
+    if (tsA !== tsB) return tsA > tsB ? 1 : -1;
+    const idA = String(rA?.id || "");
+    const idB = String(rB?.id || "");
+    if (idA === idB) return 0;
+    return idA > idB ? 1 : -1;
+  }
+
+  function mergeRounds(rA, rB) {
+    if (!rA) return rB;
+    if (!rB) return rA;
+
+    if (String(rA.id) === String(rB.id) && (Number(rA.seq) || 0) === (Number(rB.seq) || 0)) {
+      const pickAns = (slot) => {
+        const vA = rA.answers?.[slot] ?? null;
+        const vB = rB.answers?.[slot] ?? null;
+        if (vA !== null && vB === null) return { val: vA, ts: Number(rA.answerTs?.[slot]) || 1 };
+        if (vB !== null && vA === null) return { val: vB, ts: Number(rB.answerTs?.[slot]) || 1 };
+        if (vA === null && vB === null) return { val: null, ts: 0 };
+        const tA = Number(rA.answerTs?.[slot]) || 0;
+        const tB = Number(rB.answerTs?.[slot]) || 0;
+        return tB > tA ? { val: vB, ts: tB } : { val: vA, ts: tA };
+      };
+      const p1Ans = pickAns("p1");
+      const p2Ans = pickAns("p2");
+
+      const pendA = rA.pendingNext || { vibe: "surprise", mode: "next", customText: null, updatedAt: 0 };
+      const pendB = rB.pendingNext || { vibe: "surprise", mode: "next", customText: null, updatedAt: 0 };
+      const winnerPend = (Number(pendB.updatedAt) || 0) > (Number(pendA.updatedAt) || 0) ? pendB : pendA;
+
+      const base = rB.hasActiveQuestion && !rA.hasActiveQuestion ? rB : rA;
+      return {
+        id: String(base.id),
+        seq: Number(base.seq) || 0,
+        createdAt: Math.max(Number(rA.createdAt) || 0, Number(rB.createdAt) || 0),
+        hasActiveQuestion: Boolean(rA.hasActiveQuestion || rB.hasActiveQuestion),
+        vibe: base.vibe || "surprise",
+        vibeLabel: base.vibeLabel || "✨ CREATIVE AI",
+        qText: base.qText || "",
+        answers: { p1: p1Ans.val, p2: p2Ans.val },
+        answerTs: { p1: p1Ans.ts, p2: p2Ans.ts },
+        readyNext: {
+          p1: Boolean(rA.readyNext?.p1 || rB.readyNext?.p1),
+          p2: Boolean(rA.readyNext?.p2 || rB.readyNext?.p2)
+        },
+        pendingNext: {
+          vibe: winnerPend.vibe || "surprise",
+          mode: winnerPend.mode || "next",
+          customText: winnerPend.customText || null,
+          updatedAt: Math.max(Number(pendA.updatedAt) || 0, Number(pendB.updatedAt) || 0)
+        }
+      };
+    }
+
+    const cmp = compareRoundFreshness(rA, rB);
+    const winner = cmp >= 0 ? rA : rB;
+    return JSON.parse(JSON.stringify(winner));
+  }
+
+  function mergeRoomDocs(docA, docB) {
+    if (!docA) return docB ? JSON.parse(JSON.stringify(docB)) : null;
+    if (!docB) return JSON.parse(JSON.stringify(docA));
+    if (docA.roomCode && docB.roomCode && docA.roomCode !== docB.roomCode) {
+      return JSON.parse(JSON.stringify(docA));
+    }
+
+    const code = docA.roomCode || docB.roomCode;
+    const createdA = Number(docA.createdAt) || Date.now();
+    const createdB = Number(docB.createdAt) || Date.now();
+
+    const p1 = mergePlayerSlot(docA.players?.p1, docB.players?.p1);
+    const p2 = mergePlayerSlot(docA.players?.p2, docB.players?.p2);
+    const mergedRound = mergeRounds(docA.round, docB.round);
+
+    // Union chat history by ID
+    const chatMap = new Map();
+    const listA = Array.isArray(docA.chatHistory) ? docA.chatHistory : [];
+    const listB = Array.isArray(docB.chatHistory) ? docB.chatHistory : [];
+    for (let i = 0; i < listA.length; i++) {
+      const n = normalizeChatEntry(listA[i]);
+      if (n) chatMap.set(n.id, n);
+    }
+    for (let i = 0; i < listB.length; i++) {
+      const n = normalizeChatEntry(listB[i]);
+      if (n && !chatMap.has(n.id)) chatMap.set(n.id, n);
+    }
+    const mergedChat = Array.from(chatMap.values()).sort((x, y) => {
+      if (x.ts !== y.ts) return x.ts - y.ts;
+      return x.id < y.id ? -1 : (x.id > y.id ? 1 : 0);
+    }).slice(-180);
+
+    // Union usedQuestions
+    const qSet = new Set();
+    if (Array.isArray(docA.usedQuestions)) docA.usedQuestions.forEach(q => { if (q) qSet.add(q); });
+    if (Array.isArray(docB.usedQuestions)) docB.usedQuestions.forEach(q => { if (q) qSet.add(q); });
+    const mergedUsed = Array.from(qSet).slice(-50);
+
+    const summaryWinner = (Number(docB.updatedAt) || 0) > (Number(docA.updatedAt) || 0)
+      ? (docB.lastRoundSummary || docA.lastRoundSummary || "")
+      : (docA.lastRoundSummary || docB.lastRoundSummary || "");
+
+    return {
+      version: 3,
+      roomCode: code,
+      createdAt: Math.min(createdA, createdB),
+      updatedAt: Math.max(Number(docA.updatedAt) || 0, Number(docB.updatedAt) || 0),
+      players: { p1, p2 },
+      round: mergedRound,
+      chatHistory: mergedChat,
+      usedQuestions: mergedUsed,
+      lastRoundSummary: summaryWinner
+    };
+  }
+
+  function computeDocDigest(doc) {
+    if (!doc) return "";
+    return JSON.stringify({
+      p1Name: doc.players?.p1?.name || "",
+      p2Name: doc.players?.p2?.name || "",
+      r: doc.round,
+      cLen: doc.chatHistory?.length || 0,
+      cLast: doc.chatHistory?.length ? doc.chatHistory[doc.chatHistory.length - 1].id : "",
+      uLen: doc.usedQuestions?.length || 0
+    });
+  }
+
+  // --- Role & Partner Helpers ---
+  function otherRoleOf(role) {
+    return role === "p1" ? "p2" : "p1";
+  }
+
+  function getPartnerName() {
+    const other = otherRoleOf(myRole);
+    const pName = roomDoc?.players?.[other]?.name;
+    return (pName && pName.trim()) ? pName.trim() : "Partner";
+  }
+
+  function hasPartnerJoinedRoom() {
+    const other = otherRoleOf(myRole);
+    return Boolean(roomDoc?.players?.[other]?.name);
+  }
+
+  function getMyLockedAnswer() {
+    return roomDoc?.round?.answers?.[myRole] ?? null;
+  }
+
+  function getPartnerLockedAnswer() {
+    const other = otherRoleOf(myRole);
+    return roomDoc?.round?.answers?.[other] ?? null;
+  }
+
+  function isInRevealPhase() {
+    return getMyLockedAnswer() !== null && getPartnerLockedAnswer() !== null;
   }
 
   function savePlayerNamePref() {
@@ -645,126 +1249,69 @@
     if (val) safeLocalSet(NAME_KEY, val);
   }
 
-  function updateUrlRoomParam(code) {
+  function updateUrlAndBrowserHistory(code, pushHistoryEntry) {
     try {
       const url = new URL(window.location.href);
+      const currentParam = (url.searchParams.get("room") || "").toUpperCase();
       if (code) {
         url.searchParams.set("room", code);
+        const pName = getPartnerName();
+        document.title = pName !== "Partner"
+          ? ("Ask & Reveal • " + code + " (" + pName + " ❤️)")
+          : ("Ask & Reveal • Room " + code + " ✨");
+        if (pushHistoryEntry && currentParam !== code && window.history.pushState) {
+          window.history.pushState({ room: code }, document.title, url.toString());
+        } else {
+          window.history.replaceState({ room: code }, document.title, url.toString());
+        }
       } else {
         url.searchParams.delete("room");
+        document.title = "Ask & Reveal • Permanent Rooms & Live AI ✨";
+        window.history.replaceState({}, document.title, url.toString());
       }
-      window.history.replaceState({}, "", url.toString());
     } catch (e) {}
   }
 
-  function updateHeaderRoomControls() {
-    const leaveBtn = document.getElementById("leaveRoomBtn");
-    const roomBtn = document.getElementById("headerRoomBtn");
-    const inRoom = isSessionActive && roomCode && currentScreenId !== "lobbyScreen";
-    leaveBtn.style.display = inRoom ? "inline-block" : "none";
-    roomBtn.style.display = inRoom ? "inline-block" : "none";
-    if (inRoom) {
-      roomBtn.textContent = "🔗 " + roomCode;
-    }
-  }
-
-  function saveSession() {
-    if (!isSessionActive || !roomCode || currentScreenId === "lobbyScreen") return;
-    const payload = {
+  function saveCurrentRoomPermanently() {
+    if (!roomCode || !roomDoc) return;
+    const map = loadRoomsMap();
+    const record = {
       roomCode: roomCode,
-      isHost: isHost,
-      hasConnectedOnce: hasConnectedOnce,
-      screen: currentScreenId,
+      myRole: myRole,
       myName: myName,
-      partnerName: partnerName,
-      roundUpdatedAt: roundUpdatedAt,
-      hasActiveQuestion: hasActiveQuestion,
-      wasGenerating: isGenerating,
-      currentVibe: currentVibe,
-      qCategory: document.getElementById("qCategory").textContent,
-      qText: document.getElementById("qText").textContent,
-      myAnswer: myAnswer,
-      myDraftAnswer: myDraftAnswer,
-      partnerAnswer: partnerAnswer,
-      iAmReadyNext: iAmReadyNext,
-      partnerReadyNext: partnerReadyNext,
-      pendingNextVibe: pendingNextVibe,
-      pendingNextMode: pendingNextMode,
-      pendingCustomText: pendingCustomText,
-      chatHistory: chatHistory.slice(-200),
-      usedQuestions: Array.from(usedQuestions).slice(-50),
-      lastRoundSummary: lastRoundSummary,
-      savedAt: Date.now()
+      myDraftAnswer: myDraftAnswer || "",
+      lastVisitedAt: Date.now(),
+      roomDoc: roomDoc
     };
-    const raw = JSON.stringify(payload);
-    safeSessionSet(SESSION_KEY, raw);
-    safeLocalSet(BACKUP_KEY, raw);
+    map[roomCode] = record;
+    writeRoomsMap(map);
+    idbSaveRoomRecord(record);
+
+    if (isSessionActive && currentScreenId === "gameScreen") {
+      safeLocalSet(ACTIVE_ROOM_KEY, roomCode);
+      safeSessionSet(TAB_SESSION_KEY, JSON.stringify({ roomCode: roomCode, myRole: myRole }));
+    }
     if (myName) safeLocalSet(NAME_KEY, myName);
   }
 
-  function clearSavedSession() {
-    if (roomCode) {
-      safeLocalRemove(HOST_ALIVE_PREFIX + roomCode);
-    }
-    safeSessionRemove(SESSION_KEY);
-    safeLocalRemove(BACKUP_KEY);
-  }
-
-  function startHostHeartbeat() {
-    clearInterval(hostAliveInterval);
-    if (!isHost || !roomCode) return;
-    safeLocalSet(HOST_ALIVE_PREFIX + roomCode, String(Date.now()));
-    hostAliveInterval = setInterval(() => {
-      if (isSessionActive && isHost && roomCode) {
-        safeLocalSet(HOST_ALIVE_PREFIX + roomCode, String(Date.now()));
-      }
-    }, 2000);
-  }
-
-  function cleanUpUnload() {
-    if (isHost && roomCode) {
-      safeLocalRemove(HOST_ALIVE_PREFIX + roomCode);
-    }
-    if (isSessionActive) {
-      saveSession();
-    }
-    if (peer && !peer.destroyed) {
-      try { peer.destroy(); } catch (e) {}
-    }
-  }
-
-  window.addEventListener("pagehide", cleanUpUnload);
-  window.addEventListener("beforeunload", cleanUpUnload);
-
-  window.addEventListener("online", () => {
+  function startTabRoleHeartbeat() {
+    clearInterval(tabHeartbeatTimer);
     if (!isSessionActive || !roomCode) return;
-    if (conn && conn.open) return;
-    if (isHost) {
-      if (!peer || peer.destroyed) {
-        startHostPeer(true, 0);
-      } else if (peer.disconnected) {
-        try { peer.reconnect(); } catch (e) { startHostPeer(true, 0); }
+    const writeBeat = () => {
+      if (isSessionActive && roomCode) {
+        safeLocalSet(TAB_ROLE_HEARTBEAT_PREFIX + roomCode + "_" + myRole, String(Date.now()));
       }
-    } else {
-      scheduleGuestReconnect(300);
-    }
-  });
-
-  function ensurePeerLoaded() {
-    return new Promise((resolve, reject) => {
-      if (typeof window.Peer !== "undefined") return resolve();
-      const s = document.createElement("script");
-      s.src = "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js";
-      s.onload = () => resolve();
-      s.onerror = () => reject(new Error("Could not load PeerJS library. Check internet connection."));
-      document.head.appendChild(s);
-    });
+    };
+    writeBeat();
+    tabHeartbeatTimer = setInterval(writeBeat, 2000);
   }
 
-  function isInRevealPhase() {
-    return myAnswer !== null && partnerAnswer !== null;
+  function isRoleActiveInAnotherSameBrowserTab(code, role) {
+    const ts = Number(safeLocalGet(TAB_ROLE_HEARTBEAT_PREFIX + code + "_" + role) || "0");
+    return (Date.now() - ts) < 4200;
   }
 
+  // --- UI Helpers ---
   function showToast(msg, isError) {
     const t = document.getElementById("toast");
     t.textContent = msg;
@@ -776,115 +1323,507 @@
     }, isError ? 3600 : 2600);
   }
 
+  function updateHeaderRoomControls() {
+    const leaveBtn = document.getElementById("leaveRoomBtn");
+    const roomBtn = document.getElementById("headerRoomBtn");
+    const inGame = isSessionActive && roomCode && currentScreenId === "gameScreen";
+    leaveBtn.style.display = inGame ? "inline-block" : "none";
+    roomBtn.style.display = inGame ? "inline-block" : "none";
+    if (inGame) {
+      roomBtn.textContent = "🔗 " + roomCode;
+    }
+  }
+
+  function updateConnectionStatusUI() {
+    const dot = document.getElementById("statusDot");
+    const txt = document.getElementById("statusText");
+    const strip = document.getElementById("inviteStrip");
+
+    if (!isSessionActive || currentScreenId === "lobbyScreen") {
+      dot.className = "dot";
+      txt.textContent = "Lobby";
+      return;
+    }
+
+    if (currentScreenId === "waitScreen") {
+      dot.className = "dot saved";
+      txt.textContent = "Room " + (pendingLinkRoomCode || roomCode);
+      return;
+    }
+
+    const p2Joined = hasPartnerJoinedRoom();
+    const partnerLive = (conn && conn.open) || ((Date.now() - partnerLastLiveTs) < 16000);
+    const pName = getPartnerName();
+
+    document.getElementById("stripRoomCode").textContent = roomCode;
+    if (!p2Joined) {
+      strip.classList.add("visible");
+    } else {
+      strip.classList.remove("visible");
+    }
+
+    if (partnerLive) {
+      dot.className = "dot online";
+      txt.textContent = "With " + pName + " ❤️";
+    } else if (mqttConnectedCount > 0 || (peer && peer.open)) {
+      dot.className = "dot saved";
+      txt.textContent = p2Joined ? ("Saved ♾️ • " + pName) : "Saved ♾️ • Ready";
+    } else {
+      dot.className = "dot";
+      txt.textContent = "Saved Locally ♾️";
+    }
+  }
+
   function switchScreen(id) {
     currentScreenId = id;
     document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
     document.getElementById(id).classList.add("active");
     updateHeaderRoomControls();
-    if (isSessionActive && id !== "lobbyScreen") {
-      saveSession();
+    updateConnectionStatusUI();
+    if (id === "lobbyScreen") {
+      renderSavedRoomsList();
+    } else if (isSessionActive && id === "gameScreen") {
+      saveCurrentRoomPermanently();
     }
   }
 
   function randomCode() {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     let out = "";
-    for (let i = 0; i < 4; i++) out += chars[Math.floor(Math.random() * chars.length)];
+    for (let i = 0; i < 6; i++) out += chars[Math.floor(Math.random() * chars.length)];
     return out;
   }
 
-  function handleDraftInput() {
-    myDraftAnswer = document.getElementById("myAnswerInput").value;
-    saveSession();
-  }
+  // --- Saved Permanent Rooms List on Lobby ---
+  function renderSavedRoomsList() {
+    const wrap = document.getElementById("savedRoomsWrap");
+    const listEl = document.getElementById("savedRoomsList");
+    const map = loadRoomsMap();
+    const entries = Object.values(map).filter(r => r && r.roomCode && r.roomDoc);
 
-  // --- Create / Join / Reconnect ---
-  async function createRoom() {
-    const btn = document.getElementById("createBtn");
-    btn.disabled = true;
-    btn.textContent = "Creating Room... ⏳";
-    document.getElementById("statusText").textContent = "Connecting...";
-
-    try {
-      await ensurePeerLoaded();
-    } catch (e) {
-      showToast(e.message, true);
-      btn.disabled = false;
-      btn.textContent = "Create Private Room ✨";
-      document.getElementById("statusText").textContent = "Lobby";
+    if (entries.length === 0) {
+      wrap.style.display = "none";
+      listEl.innerHTML = "";
       return;
     }
 
-    myName = document.getElementById("playerName").value.trim() || "Player 1";
-    safeLocalSet(NAME_KEY, myName);
-    resetRoundAndChatState();
-    isHost = true;
-    isSessionActive = true;
-    hasConnectedOnce = false;
-    roomCode = randomCode();
+    entries.sort((a, b) => (Number(b.lastVisitedAt) || 0) - (Number(a.lastVisitedAt) || 0));
+    wrap.style.display = "block";
+    listEl.innerHTML = "";
 
-    startHostPeer(false, 0);
+    for (let i = 0; i < entries.length; i++) {
+      const item = entries[i];
+      const code = item.roomCode;
+      const role = item.myRole || "p1";
+      const other = otherRoleOf(role);
+      const partner = item.roomDoc?.players?.[other]?.name || "Waiting for partner";
+      const qPreview = item.roomDoc?.round?.hasActiveQuestion
+        ? item.roomDoc.round.qText
+        : "Permanent room ready ✨";
+      const chatCount = Array.isArray(item.roomDoc?.chatHistory)
+        ? item.roomDoc.chatHistory.filter(c => c.kind === "msg").length
+        : 0;
+
+      const row = document.createElement("div");
+      row.className = "saved-room-item";
+
+      const info = document.createElement("div");
+      info.className = "saved-room-info";
+      info.addEventListener("click", () => openSavedRoomFromHistory(code));
+
+      const top = document.createElement("div");
+      top.className = "saved-room-top";
+
+      const tag = document.createElement("span");
+      tag.className = "saved-code-tag";
+      tag.textContent = code;
+
+      const pSpan = document.createElement("span");
+      pSpan.className = "saved-partner-name";
+      pSpan.textContent = partner !== "Waiting for partner" ? ("❤️ " + partner) : "⏳ Invite Partner";
+
+      top.appendChild(tag);
+      top.appendChild(pSpan);
+
+      const sub = document.createElement("div");
+      sub.className = "saved-room-sub";
+      sub.textContent = (chatCount > 0 ? ("💬 " + chatCount + " • ") : "") + qPreview;
+
+      info.appendChild(top);
+      info.appendChild(sub);
+
+      const actions = document.createElement("div");
+      actions.className = "saved-room-actions";
+
+      const openBtn = document.createElement("button");
+      openBtn.type = "button";
+      openBtn.className = "mini-btn primary";
+      openBtn.textContent = "Enter ➡️";
+      openBtn.addEventListener("click", () => openSavedRoomFromHistory(code));
+
+      const copyBtn = document.createElement("button");
+      copyBtn.type = "button";
+      copyBtn.className = "mini-btn";
+      copyBtn.textContent = "🔗";
+      copyBtn.title = "Copy permanent room link";
+      copyBtn.addEventListener("click", () => copyInviteLinkForCode(code));
+
+      const delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.className = "mini-btn danger";
+      delBtn.textContent = pendingDeleteConfirmCode === code ? "Sure?" : "✕";
+      delBtn.title = "Remove from local history list";
+      delBtn.addEventListener("click", () => handleDeleteSavedRoomClick(code));
+
+      actions.appendChild(openBtn);
+      actions.appendChild(copyBtn);
+      actions.appendChild(delBtn);
+
+      row.appendChild(info);
+      row.appendChild(actions);
+      listEl.appendChild(row);
+    }
   }
 
-  function startHostPeer(isRestoring, attempt) {
-    clearTimeout(hostRetryTimer);
-    if (!isSessionActive || !roomCode) return;
+  function handleDeleteSavedRoomClick(code) {
+    if (pendingDeleteConfirmCode !== code) {
+      pendingDeleteConfirmCode = code;
+      renderSavedRoomsList();
+      clearTimeout(pendingDeleteTimer);
+      pendingDeleteTimer = setTimeout(() => {
+        pendingDeleteConfirmCode = "";
+        if (currentScreenId === "lobbyScreen") renderSavedRoomsList();
+      }, 3500);
+      return;
+    }
+    pendingDeleteConfirmCode = "";
+    const map = loadRoomsMap();
+    delete map[code];
+    writeRoomsMap(map);
+    idbDeleteRoomRecord(code);
+    if (safeLocalGet(ACTIVE_ROOM_KEY) === code) {
+      safeLocalRemove(ACTIVE_ROOM_KEY);
+    }
+    renderSavedRoomsList();
+    showToast("Removed " + code + " from local list (link still works anytime!)");
+  }
 
+  // --- Dynamic Library Fallbacks ---
+  function ensurePeerLoaded() {
+    return new Promise((resolve) => {
+      if (typeof window.Peer !== "undefined") return resolve(true);
+      try {
+        const s = document.createElement("script");
+        s.src = "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js";
+        s.onload = () => resolve(true);
+        s.onerror = () => resolve(false);
+        document.head.appendChild(s);
+      } catch (e) {
+        resolve(false);
+      }
+    });
+  }
+
+  function ensureMqttLoaded() {
+    return new Promise((resolve) => {
+      if (typeof window.mqtt !== "undefined") return resolve(true);
+      try {
+        const s = document.createElement("script");
+        s.src = "https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js";
+        s.onload = () => resolve(true);
+        s.onerror = () => resolve(false);
+        document.head.appendChild(s);
+      } catch (e) {
+        resolve(false);
+      }
+    });
+  }
+
+  // --- Cloud MQTT Retained Engine + Live Sync ---
+  function stateTopicFor(code) {
+    return "askreveal/perm/v3/" + code.toUpperCase() + "/state";
+  }
+  function eventTopicFor(code) {
+    return "askreveal/perm/v3/" + code.toUpperCase() + "/events";
+  }
+
+  function stopAllTransports() {
+    clearInterval(watchdogTimer);
+    clearInterval(presenceTimer);
+    clearInterval(tabHeartbeatTimer);
+    clearTimeout(peerConnectTimer);
+    clearTimeout(firstQuestionWaitTimer);
+
+    if (roomCode && myRole) {
+      safeLocalRemove(TAB_ROLE_HEARTBEAT_PREFIX + roomCode + "_" + myRole);
+    }
+
+    for (let i = 0; i < mqttClients.length; i++) {
+      try { mqttClients[i].end(true); } catch (e) {}
+    }
+    mqttClients = [];
+    mqttConnectedCount = 0;
+
+    try { if (conn) conn.close(); } catch (e) {}
+    conn = null;
+    try { if (peer && !peer.destroyed) peer.destroy(); } catch (e) {}
+    peer = null;
+    peerSlot = null;
+    partnerLastLiveTs = 0;
+  }
+
+  async function startRoomTransports(targetCode, discoveryOnly) {
+    stopAllTransports();
+    const cleanCode = targetCode.toUpperCase();
+
+    await Promise.all([ensureMqttLoaded(), ensurePeerLoaded()]);
+    if ((discoveryOnly && pendingLinkRoomCode !== cleanCode) || (!discoveryOnly && (!isSessionActive || roomCode !== cleanCode))) {
+      return;
+    }
+
+    startMqttCluster(cleanCode, discoveryOnly);
+    if (!discoveryOnly) {
+      startSymmetricPeer(cleanCode, "a");
+      startTabRoleHeartbeat();
+      startPresenceAndWatchdog();
+    }
+  }
+
+  function startMqttCluster(cleanCode, discoveryOnly) {
+    if (typeof window.mqtt === "undefined") return;
+    const sTopic = stateTopicFor(cleanCode);
+    const eTopic = eventTopicFor(cleanCode);
+
+    MQTT_BROKERS.forEach((brokerUrl, idx) => {
+      try {
+        const client = window.mqtt.connect(brokerUrl, {
+          clientId: "ar3_" + cleanCode.toLowerCase() + "_" + idx + "_" + Math.random().toString(36).slice(2, 8),
+          clean: true,
+          keepalive: 30,
+          reconnectPeriod: 2200,
+          connectTimeout: 9000,
+          protocolVersion: 4
+        });
+
+        client._isUp = false;
+
+        client.on("connect", () => {
+          if (!client._isUp) {
+            client._isUp = true;
+            mqttConnectedCount++;
+          }
+          client.subscribe([sTopic, eTopic], { qos: 1 }, () => {
+            if (!discoveryOnly && isSessionActive && roomCode === cleanCode && roomDoc) {
+              publishLiveEvent({ type: "hello", senderId: clientInstanceId, role: myRole, name: myName, ts: Date.now() });
+              if (!roleEnteredWithoutCloud) {
+                publishRetainedRoomState(true);
+              } else {
+                publishLiveEvent({ type: "who_is_here" });
+              }
+            } else if (discoveryOnly && pendingLinkRoomCode === cleanCode) {
+              try {
+                client.publish(eTopic, JSON.stringify({ type: "who_is_here", senderId: clientInstanceId, ts: Date.now() }), { qos: 0, retain: false });
+              } catch (e) {}
+            }
+          });
+          updateConnectionStatusUI();
+        });
+
+        client.on("message", (topic, payloadBuf) => {
+          let parsed = null;
+          try {
+            parsed = JSON.parse(payloadBuf.toString());
+          } catch (e) {
+            return;
+          }
+          if (!parsed) return;
+
+          if (topic === sTopic && parsed.roomCode === cleanCode) {
+            if (discoveryOnly && pendingLinkRoomCode === cleanCode) {
+              handleDiscoveryRoomDoc(parsed);
+            } else if (isSessionActive && roomCode === cleanCode) {
+              applyIncomingRoomDoc(parsed);
+            }
+          } else if (topic === eTopic) {
+            if (parsed.senderId === clientInstanceId) return;
+            if (discoveryOnly && pendingLinkRoomCode === cleanCode) {
+              if (parsed.type === "state_push" && parsed.doc) {
+                handleDiscoveryRoomDoc(parsed.doc);
+              }
+              return;
+            }
+            if (!isSessionActive || roomCode !== cleanCode) return;
+            handleLiveEventPacket(parsed);
+          }
+        });
+
+        const markDown = () => {
+          if (client._isUp) {
+            client._isUp = false;
+            mqttConnectedCount = Math.max(0, mqttConnectedCount - 1);
+            updateConnectionStatusUI();
+          }
+        };
+        client.on("close", markDown);
+        client.on("offline", markDown);
+        client.on("error", () => {});
+
+        mqttClients.push(client);
+      } catch (e) {}
+    });
+  }
+
+  function publishRetainedRoomState(force) {
+    if (!isSessionActive || !roomCode || !roomDoc) return;
+    roomDoc.updatedAt = Date.now();
+    if (roomDoc.players[myRole]) {
+      roomDoc.players[myRole].lastSeen = Date.now();
+    }
+    const digest = computeDocDigest(roomDoc);
+    if (!force && digest === lastPublishedDigest) return;
+    lastPublishedDigest = digest;
+
+    const raw = JSON.stringify(roomDoc);
+    const sTopic = stateTopicFor(roomCode);
+    for (let i = 0; i < mqttClients.length; i++) {
+      const c = mqttClients[i];
+      if (c && c.connected) {
+        try {
+          c.publish(sTopic, raw, { qos: 1, retain: true });
+        } catch (e) {}
+      }
+    }
+
+    if (conn && conn.open) {
+      try {
+        conn.send({ type: "room_doc", senderId: clientInstanceId, role: myRole, name: myName, doc: roomDoc });
+      } catch (e) {}
+    }
+  }
+
+  function publishLiveEvent(evtObj) {
+    if (!isSessionActive || !roomCode) return;
+    const packet = Object.assign({ senderId: clientInstanceId, role: myRole, name: myName, ts: Date.now() }, evtObj);
+    const raw = JSON.stringify(packet);
+    const eTopic = eventTopicFor(roomCode);
+    for (let i = 0; i < mqttClients.length; i++) {
+      const c = mqttClients[i];
+      if (c && c.connected) {
+        try { c.publish(eTopic, raw, { qos: 0, retain: false }); } catch (e) {}
+      }
+    }
+    if (conn && conn.open) {
+      try { conn.send(packet); } catch (e) {}
+    }
+  }
+
+  function handleLiveEventPacket(data) {
+    if (!data || !isSessionActive) return;
+    if (data.role && data.role !== myRole) {
+      partnerLastLiveTs = Date.now();
+      if (data.name && roomDoc) {
+        const other = otherRoleOf(myRole);
+        if (!roomDoc.players[other] || roomDoc.players[other].name !== data.name) {
+          roomDoc.players[other] = {
+            name: data.name,
+            nameUpdatedAt: data.ts || Date.now(),
+            lastSeen: Date.now()
+          };
+          saveCurrentRoomPermanently();
+          updateUrlAndBrowserHistory(roomCode, false);
+          renderFullRoomUI();
+        }
+      }
+      updateConnectionStatusUI();
+    }
+
+    if (data.type === "hello" || data.type === "who_is_here") {
+      publishLiveEvent({ type: "ping" });
+      if (roomDoc && !roleEnteredWithoutCloud) {
+        publishLiveEvent({ type: "state_push", doc: roomDoc });
+        publishRetainedRoomState(true);
+      }
+    } else if (data.type === "ping") {
+      updateConnectionStatusUI();
+    } else if (data.type === "bye" && data.role && data.role !== myRole) {
+      partnerLastLiveTs = 0;
+      updateConnectionStatusUI();
+    } else if (data.type === "generating") {
+      setGeneratingUI(data.vibe, data.reasonText);
+    } else if (data.type === "toast" && data.msg) {
+      showToast(data.msg);
+    } else if ((data.type === "room_doc" || data.type === "state_push") && data.doc) {
+      applyIncomingRoomDoc(data.doc);
+    }
+  }
+
+  function applyIncomingRoomDoc(incoming) {
+    if (!incoming || !roomDoc || incoming.roomCode !== roomCode) return;
+
+    // Smart slot reconciliation if user entered on a wiped/offline browser before cloud snapshot arrived
+    if (roleEnteredWithoutCloud) {
+      roleEnteredWithoutCloud = false;
+      const inP1 = (incoming.players?.p1?.name || "").trim();
+      const inP2 = (incoming.players?.p2?.name || "").trim();
+      if (inP1 && myName.toLowerCase() === inP1.toLowerCase() && myName.toLowerCase() !== inP2.toLowerCase()) {
+        myRole = "p1";
+        roomDoc.players.p2 = incoming.players.p2 || null;
+        roomDoc.players.p1 = { name: inP1, nameUpdatedAt: Date.now(), lastSeen: Date.now() };
+      }
+    }
+
+    const beforeDigest = computeDocDigest(roomDoc);
+    const incomingDigest = computeDocDigest(incoming);
+
+    const merged = mergeRoomDocs(roomDoc, incoming);
+    const afterDigest = computeDocDigest(merged);
+
+    if (afterDigest !== beforeDigest) {
+      roomDoc = merged;
+      isGenerating = false;
+      saveCurrentRoomPermanently();
+      updateUrlAndBrowserHistory(roomCode, false);
+      renderFullRoomUI();
+    }
+
+    if (afterDigest !== incomingDigest) {
+      publishRetainedRoomState(true);
+    } else {
+      lastPublishedDigest = afterDigest;
+    }
+  }
+
+  // --- Symmetric Dual-Slot PeerJS Engine ---
+  function peerIdForSlot(code, slot) {
+    return "askreveal-v3-" + code.toLowerCase() + "-" + slot;
+  }
+
+  function startSymmetricPeer(cleanCode, preferredSlot) {
+    if (typeof window.Peer === "undefined" || !isSessionActive || roomCode !== cleanCode) return;
+    clearTimeout(peerConnectTimer);
     if (peer && !peer.destroyed) {
       try { peer.destroy(); } catch (e) {}
     }
 
-    const peerId = "askreveal-ai-" + roomCode.toLowerCase();
-    peer = new Peer(peerId, peerConfig);
+    peerSlot = preferredSlot;
+    const myPeerId = peerIdForSlot(cleanCode, preferredSlot);
+    const targetOtherSlot = preferredSlot === "a" ? "b" : "a";
 
-    const openTimeout = setTimeout(() => {
-      if (!isSessionActive) return;
-      if (!isRestoring && currentScreenId === "lobbyScreen") {
-        showToast("Signaling server is slow right now. Please tap Create Private Room again!", true);
-        const btn = document.getElementById("createBtn");
-        btn.disabled = false;
-        btn.textContent = "Create Private Room ✨";
-        document.getElementById("statusText").textContent = "Lobby";
-        isSessionActive = false;
-      } else if (isRestoring && (!peer || !peer.open)) {
-        hostRetryTimer = setTimeout(() => startHostPeer(true, attempt + 1), 1600);
-      }
-    }, 8500);
+    try {
+      peer = new Peer(myPeerId, peerConfig);
+    } catch (e) {
+      return;
+    }
 
     peer.on("open", () => {
-      clearTimeout(openTimeout);
-      if (!isSessionActive) return;
-
-      updateUrlRoomParam(roomCode);
-      startHostHeartbeat();
-      document.getElementById("displayRoomCode").textContent = roomCode;
-
-      if (!isRestoring) {
-        const btn = document.getElementById("createBtn");
-        btn.disabled = false;
-        btn.textContent = "Create Private Room ✨";
-        document.getElementById("statusText").textContent = "Waiting...";
-        switchScreen("waitScreen");
-      } else {
-        if (currentScreenId === "waitScreen") {
-          document.getElementById("statusText").textContent = "Waiting...";
-        } else if (!conn || !conn.open) {
-          document.getElementById("statusText").textContent = "Waiting reconnect...";
-        }
-        saveSession();
-        if (resumeGenerateNeeded && currentScreenId === "gameScreen") {
-          resumeGenerateNeeded = false;
-          requestLiveQuestion(currentVibe || "surprise", hasActiveQuestion ? "next" : "first");
-        }
-      }
+      if (!isSessionActive || roomCode !== cleanCode) return;
+      updateConnectionStatusUI();
+      tryConnectToOtherPeerSlot(cleanCode, targetOtherSlot);
     });
 
     peer.on("connection", (incomingConn) => {
-      if (!isSessionActive) return;
-      if (conn && conn !== incomingConn) {
-        try { conn.close(); } catch (e) {}
-      }
-      setupConnection(incomingConn);
+      if (!isSessionActive || roomCode !== cleanCode) return;
+      wirePeerConnection(incomingConn);
     });
 
     peer.on("disconnected", () => {
@@ -893,434 +1832,460 @@
     });
 
     peer.on("error", (err) => {
-      clearTimeout(openTimeout);
-      if (!isSessionActive) return;
-
+      if (!isSessionActive || roomCode !== cleanCode) return;
       if (err && err.type === "unavailable-id") {
         try { peer.destroy(); } catch (e) {}
-        if (isRestoring) {
-          if (attempt < 10) {
-            document.getElementById("statusText").textContent = "Reclaiming room...";
-            hostRetryTimer = setTimeout(() => startHostPeer(true, attempt + 1), 1400);
-          } else {
-            showToast("Room ID still busy — retrying...", true);
-            hostRetryTimer = setTimeout(() => startHostPeer(true, 0), 3000);
-          }
+        if (preferredSlot === "a") {
+          startSymmetricPeer(cleanCode, "b");
         } else {
-          roomCode = randomCode();
-          startHostPeer(false, 0);
+          peerConnectTimer = setTimeout(() => startSymmetricPeer(cleanCode, "a"), 2800);
         }
-      } else if (isRestoring) {
-        hostRetryTimer = setTimeout(() => startHostPeer(true, attempt + 1), 2000);
-      } else {
-        showToast("Connection error: " + (err ? err.type : "network"), true);
-        const btn = document.getElementById("createBtn");
-        btn.disabled = false;
-        btn.textContent = "Create Private Room ✨";
-        document.getElementById("statusText").textContent = "Lobby";
-        isSessionActive = false;
       }
     });
   }
 
-  async function joinRoom() {
+  function tryConnectToOtherPeerSlot(cleanCode, otherSlot) {
+    if (!isSessionActive || roomCode !== cleanCode || !peer || peer.destroyed || !peer.open) return;
+    if (conn && conn.open) return;
+    try {
+      const outgoing = peer.connect(peerIdForSlot(cleanCode, otherSlot), { reliable: true });
+      wirePeerConnection(outgoing);
+    } catch (e) {}
+  }
+
+  function wirePeerConnection(c) {
+    c.on("open", () => {
+      if (!isSessionActive) return;
+      if (conn && conn !== c && conn.open) {
+        try { conn.close(); } catch (e) {}
+      }
+      conn = c;
+      partnerLastLiveTs = Date.now();
+      updateConnectionStatusUI();
+      try {
+        c.send({ type: "hello", senderId: clientInstanceId, role: myRole, name: myName, ts: Date.now() });
+        if (roomDoc && !roleEnteredWithoutCloud) {
+          c.send({ type: "room_doc", senderId: clientInstanceId, role: myRole, name: myName, doc: roomDoc });
+        } else {
+          c.send({ type: "who_is_here", senderId: clientInstanceId, role: myRole, name: myName, ts: Date.now() });
+        }
+      } catch (e) {}
+    });
+
+    c.on("data", (data) => {
+      if (!isSessionActive || !data) return;
+      handleLiveEventPacket(data);
+    });
+
+    c.on("close", () => {
+      if (conn === c) {
+        conn = null;
+        updateConnectionStatusUI();
+      }
+    });
+
+    c.on("error", () => {
+      if (conn === c) {
+        conn = null;
+        updateConnectionStatusUI();
+      }
+    });
+  }
+
+  function startPresenceAndWatchdog() {
+    clearInterval(presenceTimer);
+    clearInterval(watchdogTimer);
+
+    presenceTimer = setInterval(() => {
+      if (!isSessionActive || !roomCode) return;
+      publishLiveEvent({ type: "ping" });
+      updateConnectionStatusUI();
+    }, 6500);
+
+    watchdogTimer = setInterval(() => {
+      if (!isSessionActive || !roomCode) return;
+      if (typeof window.Peer !== "undefined") {
+        if (!peer || peer.destroyed) {
+          startSymmetricPeer(roomCode, "a");
+        } else if (peer.disconnected) {
+          try { peer.reconnect(); } catch (e) { startSymmetricPeer(roomCode, "a"); }
+        } else if (peer.open && (!conn || !conn.open)) {
+          const otherSlot = peerSlot === "a" ? "b" : "a";
+          tryConnectToOtherPeerSlot(roomCode, otherSlot);
+        }
+      }
+    }, 5500);
+  }
+
+  // --- Wakeup & Lifecycle Recovery (Phone Sleep / Screen Off / App Switch / Browser Back) ---
+  function handleWakeUpRecovery() {
+    if (!isSessionActive || !roomCode) return;
+    saveCurrentRoomPermanently();
+    for (let i = 0; i < mqttClients.length; i++) {
+      const c = mqttClients[i];
+      if (c && !c.connected && !c.reconnecting) {
+        try { c.reconnect(); } catch (e) {}
+      }
+    }
+    if (!peer || peer.destroyed) {
+      startSymmetricPeer(roomCode, "a");
+    } else if (peer.disconnected) {
+      try { peer.reconnect(); } catch (e) { startSymmetricPeer(roomCode, "a"); }
+    } else if (peer.open && (!conn || !conn.open)) {
+      tryConnectToOtherPeerSlot(roomCode, peerSlot === "a" ? "b" : "a");
+    }
+    publishLiveEvent({ type: "hello" });
+    if (!roleEnteredWithoutCloud) {
+      publishRetainedRoomState(true);
+    }
+    updateConnectionStatusUI();
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      handleWakeUpRecovery();
+    } else if (isSessionActive) {
+      saveCurrentRoomPermanently();
+    }
+  });
+
+  window.addEventListener("pageshow", () => {
+    if (isSessionActive) handleWakeUpRecovery();
+  });
+
+  window.addEventListener("online", () => {
+    if (isSessionActive) handleWakeUpRecovery();
+  });
+
+  window.addEventListener("popstate", () => {
+    let urlRoom = "";
+    try {
+      const params = new URLSearchParams(window.location.search);
+      urlRoom = (params.get("room") || "").trim().toUpperCase();
+    } catch (e) {}
+    if (!urlRoom && isSessionActive) {
+      leaveRoom();
+    } else if (urlRoom && urlRoom !== roomCode) {
+      const map = loadRoomsMap();
+      if (map[urlRoom] && map[urlRoom].roomDoc) {
+        openSavedRoomFromHistory(urlRoom);
+      } else {
+        openDirectLinkDiscovery(urlRoom, false);
+      }
+    }
+  });
+
+  window.addEventListener("beforeunload", () => {
+    if (isSessionActive && roomCode) {
+      saveCurrentRoomPermanently();
+      publishLiveEvent({ type: "bye" });
+      safeLocalRemove(TAB_ROLE_HEARTBEAT_PREFIX + roomCode + "_" + myRole);
+    }
+  });
+
+  // --- Create / Open / Link Rejoin Flows ---
+  function createRoom() {
+    const typedName = document.getElementById("playerName").value.trim();
+    myName = typedName || safeLocalGet(NAME_KEY) || "Player 1";
+    document.getElementById("playerName").value = myName;
+    safeLocalSet(NAME_KEY, myName);
+
+    roomCode = randomCode();
+    myRole = "p1";
+    myDraftAnswer = "";
+    roleEnteredWithoutCloud = false;
+    isSessionActive = true;
+    lastPublishedDigest = "";
+
+    roomDoc = createEmptyRoomDoc(roomCode);
+    roomDoc.players.p1 = {
+      name: myName,
+      nameUpdatedAt: Date.now(),
+      lastSeen: Date.now()
+    };
+
+    updateUrlAndBrowserHistory(roomCode, true);
+    saveCurrentRoomPermanently();
+    renderFullRoomUI();
+    switchScreen("gameScreen");
+    showToast("Permanent Room " + roomCode + " created! Copy link & share ❤️");
+
+    startRoomTransports(roomCode, false);
+    requestLiveQuestion("surprise", "first");
+  }
+
+  function openSavedRoomFromHistory(code) {
+    const cleanCode = String(code || "").trim().toUpperCase();
+    const map = loadRoomsMap();
+    const saved = map[cleanCode];
+    if (!saved || !saved.roomDoc) return;
+
+    const typedName = document.getElementById("playerName").value.trim();
+    roomCode = cleanCode;
+    myRole = saved.myRole || "p1";
+    roleEnteredWithoutCloud = false;
+
+    if (isRoleActiveInAnotherSameBrowserTab(cleanCode, myRole)) {
+      const alt = otherRoleOf(myRole);
+      if (!isRoleActiveInAnotherSameBrowserTab(cleanCode, alt)) {
+        myRole = alt;
+      }
+    }
+
+    myName = typedName || saved.myName || saved.roomDoc?.players?.[myRole]?.name || safeLocalGet(NAME_KEY) || (myRole === "p1" ? "Player 1" : "Player 2");
+    document.getElementById("playerName").value = myName;
+    myDraftAnswer = saved.myDraftAnswer || "";
+    roomDoc = JSON.parse(JSON.stringify(saved.roomDoc));
+
+    if (!roomDoc.players[myRole] || roomDoc.players[myRole].name !== myName) {
+      roomDoc.players[myRole] = {
+        name: myName,
+        nameUpdatedAt: Date.now(),
+        lastSeen: Date.now()
+      };
+    }
+
+    isSessionActive = true;
+    lastPublishedDigest = "";
+    updateUrlAndBrowserHistory(roomCode, true);
+    saveCurrentRoomPermanently();
+    renderFullRoomUI();
+    switchScreen("gameScreen");
+
+    startRoomTransports(roomCode, false);
+
+    if (!roomDoc.round.hasActiveQuestion && !isGenerating) {
+      firstQuestionWaitTimer = setTimeout(() => {
+        if (isSessionActive && roomCode === cleanCode && !roomDoc.round.hasActiveQuestion && !isGenerating) {
+          requestLiveQuestion("surprise", "first");
+        }
+      }, 1300);
+    }
+  }
+
+  function joinRoom() {
     const code = document.getElementById("joinCodeInput").value.trim().toUpperCase();
     if (code.length < 4) {
-      showToast("Please enter the 4-letter room code!", true);
+      showToast("Please enter a valid room code (4-8 characters)!", true);
       return;
     }
 
-    const btn = document.getElementById("joinBtn");
-    btn.disabled = true;
-    btn.textContent = "Joining... ⏳";
-    document.getElementById("statusText").textContent = "Connecting...";
-
-    try {
-      await ensurePeerLoaded();
-    } catch (e) {
-      showToast(e.message, true);
-      btn.disabled = false;
-      btn.textContent = "Join Room 🔗";
-      document.getElementById("statusText").textContent = "Lobby";
+    const map = loadRoomsMap();
+    if (map[code] && map[code].roomDoc && !isRoleActiveInAnotherSameBrowserTab(code, map[code].myRole || "p1")) {
+      openSavedRoomFromHistory(code);
       return;
     }
 
-    myName = document.getElementById("playerName").value.trim() || "Player 2";
-    safeLocalSet(NAME_KEY, myName);
-    resetRoundAndChatState();
-    isHost = false;
-    isSessionActive = true;
-    hasConnectedOnce = false;
-    roomCode = code;
-
-    startGuestPeer(false);
+    openDirectLinkDiscovery(code, true);
   }
 
-  function resetJoinLobbyUI(errMsg) {
-    if (errMsg) showToast(errMsg, true);
-    const btn = document.getElementById("joinBtn");
-    btn.disabled = false;
-    btn.textContent = "Join Room 🔗";
-    document.getElementById("statusText").textContent = "Lobby";
+  function openDirectLinkDiscovery(code, autoEnterIfNamed) {
+    const cleanCode = code.toUpperCase();
+    pendingLinkRoomCode = cleanCode;
+    pendingCloudDoc = null;
     isSessionActive = false;
-  }
 
-  function scheduleGuestReconnect(delayMs) {
-    clearTimeout(guestReconnectTimer);
-    if (!isSessionActive || isHost || !roomCode) return;
-    document.getElementById("statusDot").classList.remove("online");
-    document.getElementById("statusText").textContent = "Reconnecting...";
-    guestReconnectTimer = setTimeout(() => {
-      if (!isSessionActive || isHost || (conn && conn.open)) return;
-      startGuestPeer(true);
-    }, delayMs || 2000);
-  }
+    const savedName = document.getElementById("playerName").value.trim() || safeLocalGet(NAME_KEY) || "";
+    document.getElementById("rejoinNameInput").value = savedName;
+    document.getElementById("displayRoomCode").textContent = cleanCode;
+    document.getElementById("rejoinSubtitle").textContent = "Permanent Room Link ♾️";
+    document.getElementById("rejoinSyncStatus").textContent = "Checking cloud for saved room history... ☁️";
+    document.getElementById("rejoinSlotsBox").style.display = "none";
+    document.getElementById("rejoinSlotsBox").innerHTML = "";
+    document.getElementById("rejoinCustomBox").style.display = "block";
+    document.getElementById("rejoinEnterBtn").textContent = "Enter Permanent Room ✨";
+    document.getElementById("creatorRecoverWrap").style.display = "none";
+    document.getElementById("creatorRecoverWrap").innerHTML = "";
+    updateUrlAndBrowserHistory(cleanCode, false);
+    switchScreen("waitScreen");
 
-  function startGuestPeer(isRestoring) {
-    clearTimeout(guestReconnectTimer);
-    clearTimeout(connectAttemptTimeout);
-    if (!isSessionActive || isHost || !roomCode) return;
+    startRoomTransports(cleanCode, true);
 
-    const connectToHost = () => {
-      if (!isSessionActive || !peer || peer.destroyed) return;
-      const outgoing = peer.connect("askreveal-ai-" + roomCode.toLowerCase(), { reliable: true });
-      setupConnection(outgoing);
-
-      connectAttemptTimeout = setTimeout(() => {
-        if (!isSessionActive) return;
-        if (!conn || !conn.open) {
-          try { outgoing.close(); } catch (e) {}
-          if (isRestoring || hasConnectedOnce) {
-            scheduleGuestReconnect(1600);
-          } else {
-            try { peer.destroy(); } catch (e) {}
-            resetJoinLobbyUI("Could not find room " + roomCode + "! Make sure your partner has the room open.");
-          }
+    setTimeout(() => {
+      if (currentScreenId === "waitScreen" && pendingLinkRoomCode === cleanCode && !pendingCloudDoc) {
+        document.getElementById("rejoinSyncStatus").textContent = "Ready to enter Room " + cleanCode + " ✨ (Permanent & auto-syncs)";
+        if (autoEnterIfNamed && savedName) {
+          enterRoomWithRole(cleanCode, "p2", savedName, null);
         }
-      }, 6500);
-    };
+      }
+    }, 1400);
+  }
 
-    if (peer && !peer.destroyed && peer.open) {
-      connectToHost();
+  function handleDiscoveryRoomDoc(doc) {
+    if (!doc || doc.roomCode !== pendingLinkRoomCode || currentScreenId !== "waitScreen") return;
+    pendingCloudDoc = pendingCloudDoc ? mergeRoomDocs(pendingCloudDoc, doc) : doc;
+
+    const p1Name = (pendingCloudDoc.players?.p1?.name || "").trim();
+    const p2Name = (pendingCloudDoc.players?.p2?.name || "").trim();
+    const statusEl = document.getElementById("rejoinSyncStatus");
+    const subtitleEl = document.getElementById("rejoinSubtitle");
+    const slotsBox = document.getElementById("rejoinSlotsBox");
+    const customBox = document.getElementById("rejoinCustomBox");
+    const recoverWrap = document.getElementById("creatorRecoverWrap");
+
+    slotsBox.innerHTML = "";
+    recoverWrap.innerHTML = "";
+
+    const msgCount = Array.isArray(pendingCloudDoc.chatHistory)
+      ? pendingCloudDoc.chatHistory.filter(c => c.kind === "msg").length
+      : 0;
+
+    if (p1Name && p2Name) {
+      // Both players already exist in this permanent room (e.g. someone cleared Chrome and opened the link!)
+      subtitleEl.textContent = "Welcome back to Permanent Room ♾️";
+      statusEl.textContent = "✅ Room history restored!" + (msgCount > 0 ? (" (" + msgCount + " chat messages saved)") : " Tap your name:");
+
+      const btnGuest = document.createElement("button");
+      btnGuest.type = "button";
+      btnGuest.className = "btn";
+      btnGuest.style.marginBottom = "0";
+      btnGuest.textContent = "Continue as " + p2Name + " ❤️";
+      btnGuest.addEventListener("click", () => enterRoomWithRole(pendingLinkRoomCode, "p2", p2Name, pendingCloudDoc));
+      slotsBox.appendChild(btnGuest);
+
+      const btnHost = document.createElement("button");
+      btnHost.type = "button";
+      btnHost.className = "btn btn-secondary";
+      btnHost.style.marginBottom = "0";
+      btnHost.textContent = "Continue as " + p1Name + " ✨";
+      btnHost.addEventListener("click", () => enterRoomWithRole(pendingLinkRoomCode, "p1", p1Name, pendingCloudDoc));
+      slotsBox.appendChild(btnHost);
+
+      slotsBox.style.display = "flex";
+      customBox.style.display = "none";
+      recoverWrap.style.display = "none";
+    } else if (p1Name && !p2Name) {
+      // First-time Guest joining p1's newly created permanent room!
+      subtitleEl.textContent = p1Name + " invited you to play ❤️";
+      statusEl.textContent = "✨ Permanent Room ready — enter your name below:";
+      slotsBox.style.display = "none";
+      customBox.style.display = "block";
+      document.getElementById("rejoinEnterBtn").textContent = "Join " + p1Name + "'s Room ❤️";
+
+      // Subtle option at bottom in case Creator themselves wiped Chrome before guest joined
+      const recBtn = document.createElement("button");
+      recBtn.type = "button";
+      recBtn.className = "btn btn-subtle";
+      recBtn.style.marginBottom = "0";
+      recBtn.textContent = "Are you " + p1Name + "? Rejoin as Creator ✨";
+      recBtn.addEventListener("click", () => enterRoomWithRole(pendingLinkRoomCode, "p1", p1Name, pendingCloudDoc));
+      recoverWrap.appendChild(recBtn);
+      recoverWrap.style.display = "block";
+    } else {
+      slotsBox.style.display = "none";
+      customBox.style.display = "block";
+      recoverWrap.style.display = "none";
+      statusEl.textContent = "✅ Permanent Room ready!";
+    }
+  }
+
+  function confirmLinkJoin() {
+    const code = pendingLinkRoomCode || document.getElementById("joinCodeInput").value.trim().toUpperCase();
+    if (!code) return;
+    const typed = document.getElementById("rejoinNameInput").value.trim() || document.getElementById("playerName").value.trim();
+    if (!typed) {
+      showToast("Please enter your name first!", true);
+      document.getElementById("rejoinNameInput").focus();
       return;
     }
 
-    if (peer && !peer.destroyed) {
-      try { peer.destroy(); } catch (e) {}
+    let chosenRole = "p2";
+    if (pendingCloudDoc) {
+      const p1Name = (pendingCloudDoc.players?.p1?.name || "").toLowerCase();
+      const p2Name = (pendingCloudDoc.players?.p2?.name || "").toLowerCase();
+      if (p1Name && typed.toLowerCase() === p1Name && typed.toLowerCase() !== p2Name) {
+        chosenRole = "p1";
+      } else if (!p1Name && !p2Name) {
+        chosenRole = "p1";
+      }
     }
 
-    peer = new Peer(undefined, peerConfig);
-
-    peer.on("open", () => {
-      if (!isSessionActive) return;
-      connectToHost();
-    });
-
-    peer.on("disconnected", () => {
-      if (!isSessionActive || !peer || peer.destroyed) return;
-      try { peer.reconnect(); } catch (e) {}
-    });
-
-    peer.on("error", () => {
-      clearTimeout(connectAttemptTimeout);
-      if (!isSessionActive) return;
-      if (isRestoring || hasConnectedOnce) {
-        try { peer.destroy(); } catch (e) {}
-        scheduleGuestReconnect(2000);
-      } else {
-        try { peer.destroy(); } catch (e) {}
-        resetJoinLobbyUI("Could not find room " + roomCode + "! Check the code and try again.");
-      }
-    });
+    enterRoomWithRole(code, chosenRole, typed, pendingCloudDoc);
   }
 
-  function buildSyncPayload() {
-    return {
-      type: "sync_state",
-      name: myName,
-      roundUpdatedAt: roundUpdatedAt,
-      hasActiveQuestion: hasActiveQuestion,
-      isGenerating: isGenerating,
-      currentVibe: currentVibe,
-      qCategory: document.getElementById("qCategory").textContent,
-      qText: document.getElementById("qText").textContent,
-      myLockedAnswer: myAnswer,
-      iAmReadyNext: iAmReadyNext,
-      pendingNextVibe: pendingNextVibe,
-      pendingNextMode: pendingNextMode,
-      pendingCustomText: pendingCustomText,
-      chatHistory: chatHistory.slice(-200)
-    };
-  }
-
-  function mergeIncomingChatHistory(incomingList) {
-    if (!Array.isArray(incomingList) || incomingList.length === 0) return;
-    let changed = false;
-    for (let i = 0; i < incomingList.length; i++) {
-      const item = incomingList[i];
-      if (!item || !item.id) continue;
-      if (!seenChatIds.has(item.id)) {
-        seenChatIds.add(item.id);
-        chatHistory.push(item);
-        changed = true;
-      }
-    }
-    if (changed) {
-      chatHistory.sort((a, b) => (a.ts || 0) - (b.ts || 0));
-      renderFullChatHistory();
-    }
-  }
-
-  function handleSyncState(data) {
-    if (data.name) {
-      partnerName = data.name;
-      document.getElementById("statusText").textContent = "With " + partnerName + " ❤️";
-    }
-
-    mergeIncomingChatHistory(data.chatHistory);
-
-    if (!hasActiveQuestion && !data.hasActiveQuestion) {
-      if (isHost && !isGenerating) {
-        setTimeout(() => {
-          if (!hasActiveQuestion && !isGenerating) {
-            requestLiveQuestion("surprise", "first");
-          }
-        }, 300);
-      }
-      saveSession();
-      return;
-    }
-
-    if (data.hasActiveQuestion && (!hasActiveQuestion || (data.roundUpdatedAt || 0) > (roundUpdatedAt || 0))) {
-      highlightVibeChip(data.currentVibe || "surprise");
-      const sameText = hasActiveQuestion && data.qText === document.getElementById("qText").textContent;
-      roundUpdatedAt = data.roundUpdatedAt || Date.now();
-      hasActiveQuestion = true;
-      isGenerating = false;
-
-      if (!sameText) {
-        myAnswer = null;
-        myDraftAnswer = "";
-        iAmReadyNext = false;
-      }
-      partnerAnswer = (data.myLockedAnswer !== undefined) ? data.myLockedAnswer : null;
-      partnerReadyNext = Boolean(data.iAmReadyNext);
-      pendingNextVibe = data.pendingNextVibe || currentVibe;
-      pendingNextMode = data.pendingNextMode || "next";
-      pendingCustomText = data.pendingCustomText || null;
-
-      renderCurrentRoundState(data.qCategory || VIBE_LABELS[currentVibe] || "✨ CREATIVE AI", data.qText);
-      saveSession();
-      return;
-    }
-
-    if (hasActiveQuestion && data.hasActiveQuestion && data.qText === document.getElementById("qText").textContent) {
-      if (data.myLockedAnswer !== null && data.myLockedAnswer !== undefined) {
-        partnerAnswer = data.myLockedAnswer;
-      }
-      partnerReadyNext = Boolean(data.iAmReadyNext);
-      if (data.pendingNextVibe) pendingNextVibe = data.pendingNextVibe;
-      if (data.pendingNextMode) pendingNextMode = data.pendingNextMode;
-      if (data.pendingCustomText) pendingCustomText = data.pendingCustomText;
-
-      checkReveal();
-      if (iAmReadyNext && partnerReadyNext) {
-        iAmReadyNext = false;
-        partnerReadyNext = false;
-        if (isHost) executePendingNext();
-      } else {
-        updateReadyBannerUI();
-      }
-      saveSession();
-    } else if (hasActiveQuestion && (!data.hasActiveQuestion || (roundUpdatedAt || 0) > (data.roundUpdatedAt || 0))) {
-      if (conn && conn.open) {
-        conn.send(buildSyncPayload());
-      }
-    }
-  }
-
-  function setupConnection(activeConn) {
-    conn = activeConn;
-
-    activeConn.on("open", () => {
-      if (conn !== activeConn || !isSessionActive) return;
-      clearTimeout(connectAttemptTimeout);
-      clearTimeout(guestReconnectTimer);
-
-      const wasReconnect = hasConnectedOnce;
-      hasConnectedOnce = true;
-
-      const joinBtn = document.getElementById("joinBtn");
-      joinBtn.disabled = false;
-      joinBtn.textContent = "Join Room 🔗";
-
-      updateUrlRoomParam(roomCode);
-      document.getElementById("statusDot").classList.add("online");
-      document.getElementById("statusText").textContent = partnerName && partnerName !== "Partner"
-        ? ("With " + partnerName + " ❤️")
-        : "Connected ❤️";
-
-      if (currentScreenId !== "gameScreen") {
-        switchScreen("gameScreen");
-      } else {
-        updateHeaderRoomControls();
-      }
-
-      activeConn.send({ type: "hello", name: myName });
-      activeConn.send(buildSyncPayload());
-
-      if (wasReconnect) {
-        showToast("Reconnected with " + partnerName + " ❤️");
-      }
-      saveSession();
-    });
-
-    activeConn.on("data", (data) => {
-      if (conn !== activeConn || !isSessionActive || !data) return;
-
-      if (data.type === "hello") {
-        partnerName = data.name || "Partner";
-        document.getElementById("statusDot").classList.add("online");
-        document.getElementById("statusText").textContent = "With " + partnerName + " ❤️";
-        updatePartnerState();
-        if (isInRevealPhase()) {
-          document.getElementById("partnerCardTitle").textContent = partnerName;
-        }
-        saveSession();
-      } else if (data.type === "sync_state") {
-        handleSyncState(data);
-      } else if (data.type === "generating") {
-        setGeneratingUI(data.vibe, data.reasonText);
-      } else if (data.type === "question") {
-        highlightVibeChip(data.vibe);
-        applyNewQuestion(data.vibeLabel, data.text, data.roundUpdatedAt || Date.now());
-        if (data.toast) showToast(data.toast);
-      } else if (data.type === "locked") {
-        partnerAnswer = data.answer;
-        checkReveal();
-        saveSession();
-      } else if (data.type === "ready_next") {
-        partnerReadyNext = true;
-        pendingNextVibe = data.vibe || currentVibe;
-        pendingNextMode = data.mode || "next";
-        pendingCustomText = data.customText || null;
-
-        if (iAmReadyNext) {
-          iAmReadyNext = false;
-          partnerReadyNext = false;
-          saveSession();
-          if (isHost) {
-            executePendingNext();
-          }
-        } else {
-          updateReadyBannerUI();
-          saveSession();
-          showToast("✨ " + partnerName + " is ready for the next card!");
-        }
-      } else if (data.type === "chat") {
-        receiveChatPacket(data);
-      } else if (data.type === "partner_left") {
-        document.getElementById("statusDot").classList.remove("online");
-        document.getElementById("statusText").textContent = (data.name || partnerName) + " left";
-        showToast((data.name || partnerName) + " left the room");
-      }
-    });
-
-    activeConn.on("close", () => {
-      if (conn !== activeConn || !isSessionActive) return;
-      document.getElementById("statusDot").classList.remove("online");
-      document.getElementById("statusText").textContent = "Reconnecting...";
-      if (!isHost) {
-        scheduleGuestReconnect(1500);
-      }
-    });
-
-    activeConn.on("error", () => {
-      if (conn !== activeConn || !isSessionActive) return;
-      document.getElementById("statusDot").classList.remove("online");
-      if (!isHost) {
-        scheduleGuestReconnect(1800);
-      }
-    });
-  }
-
-  function leaveRoom() {
-    isSessionActive = false;
-    hasConnectedOnce = false;
-    clearTimeout(hostRetryTimer);
-    clearTimeout(guestReconnectTimer);
-    clearTimeout(connectAttemptTimeout);
-    clearInterval(hostAliveInterval);
-
-    if (conn && conn.open) {
-      try { conn.send({ type: "partner_left", name: myName }); } catch (e) {}
-    }
-    try { if (conn) conn.close(); } catch (e) {}
-    try { if (peer && !peer.destroyed) peer.destroy(); } catch (e) {}
-
-    conn = null;
-    peer = null;
-    clearSavedSession();
-    roomCode = "";
-    updateUrlRoomParam("");
-    resetRoundAndChatState();
-
-    document.getElementById("statusDot").classList.remove("online");
-    document.getElementById("statusText").textContent = "Lobby";
-    document.getElementById("createBtn").disabled = false;
-    document.getElementById("createBtn").textContent = "Create Private Room ✨";
-    document.getElementById("joinBtn").disabled = false;
-    document.getElementById("joinBtn").textContent = "Join Room 🔗";
-    document.getElementById("joinCodeInput").value = "";
-
-    switchScreen("lobbyScreen");
-    showToast("Left the room");
-  }
-
-  function resetRoundAndChatState() {
-    partnerName = "Partner";
-    currentVibe = "surprise";
-    roundUpdatedAt = 0;
-    hasActiveQuestion = false;
-    myAnswer = null;
+  function enterRoomWithRole(code, role, playerNameStr, initialCloudDoc) {
+    const cleanCode = code.toUpperCase();
+    pendingLinkRoomCode = "";
+    roomCode = cleanCode;
+    myRole = role;
+    myName = playerNameStr.trim() || (role === "p1" ? "Player 1" : "Player 2");
     myDraftAnswer = "";
-    partnerAnswer = null;
-    isGenerating = false;
-    resumeGenerateNeeded = false;
-    usedQuestions = new Set();
-    lastRoundSummary = "";
-    iAmReadyNext = false;
-    partnerReadyNext = false;
-    pendingNextVibe = "surprise";
-    pendingNextMode = "next";
-    pendingCustomText = null;
-    chatHistory = [];
-    seenChatIds = new Set();
+    roleEnteredWithoutCloud = !initialCloudDoc;
+    document.getElementById("playerName").value = myName;
+    safeLocalSet(NAME_KEY, myName);
 
-    document.getElementById("chatMessages").innerHTML = "";
-    document.getElementById("qCategory").textContent = "✨ LIVE AI THINKING...";
-    document.getElementById("qText").textContent = "Crafting a spontaneous creative question...";
-    document.getElementById("myAnswerInput").value = "";
-    document.getElementById("myAnswerInput").disabled = false;
-    document.getElementById("lockBtn").disabled = false;
-    document.getElementById("lockBtn").textContent = "Lock In Answer 🔒";
-    document.getElementById("answerPhase").style.display = "block";
-    document.getElementById("revealPhase").style.display = "none";
-    highlightVibeChip("surprise");
+    const baseDoc = createEmptyRoomDoc(cleanCode);
+    roomDoc = initialCloudDoc ? mergeRoomDocs(baseDoc, initialCloudDoc) : baseDoc;
+    roomDoc.players[myRole] = {
+      name: myName,
+      nameUpdatedAt: Date.now(),
+      lastSeen: Date.now()
+    };
+
+    isSessionActive = true;
+    lastPublishedDigest = "";
+    updateUrlAndBrowserHistory(roomCode, true);
+    saveCurrentRoomPermanently();
+    renderFullRoomUI();
+    switchScreen("gameScreen");
+
+    startRoomTransports(roomCode, false);
+
+    if (!roomDoc.round.hasActiveQuestion && !isGenerating) {
+      firstQuestionWaitTimer = setTimeout(() => {
+        if (isSessionActive && roomCode === cleanCode && !roomDoc.round.hasActiveQuestion && !isGenerating) {
+          roleEnteredWithoutCloud = false;
+          requestLiveQuestion("surprise", "first");
+        }
+      }, 1600);
+    }
   }
 
-  function copyInviteLink() {
+  // Going back to Lobby keeps the room 100% saved permanently in History!
+  function leaveRoom() {
+    if (isSessionActive && roomCode && roomDoc) {
+      saveCurrentRoomPermanently();
+      publishLiveEvent({ type: "bye" });
+    }
+    isSessionActive = false;
+    pendingLinkRoomCode = "";
+    pendingCloudDoc = null;
+    stopAllTransports();
+
+    safeLocalRemove(ACTIVE_ROOM_KEY);
+    safeSessionRemove(TAB_SESSION_KEY);
+    roomCode = "";
+    roomDoc = null;
+    updateUrlAndBrowserHistory("", false);
+
+    document.getElementById("joinCodeInput").value = "";
+    switchScreen("lobbyScreen");
+    showToast("Room saved in History ♾️ Re-enter anytime!");
+  }
+
+  // --- Invite Link Copying ---
+  function buildRoomLink(code) {
     const base = (window.location.origin && window.location.origin !== "null")
       ? (window.location.origin + window.location.pathname)
       : window.location.href.split("?")[0];
-    const url = base + "?room=" + roomCode;
+    return base + "?room=" + encodeURIComponent(code);
+  }
+
+  function copyInviteLinkForCode(code) {
+    const target = code || roomCode || pendingLinkRoomCode;
+    if (!target) return;
+    const url = buildRoomLink(target);
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(url).then(() => {
-        showToast("Direct link copied! Send it to her ❤️");
+        showToast("Permanent room link copied! Send it once, works forever ❤️");
       }).catch(() => fallbackCopy(url));
     } else {
       fallbackCopy(url);
     }
+  }
+
+  function copyInviteLink() {
+    copyInviteLinkForCode(roomCode || pendingLinkRoomCode);
   }
 
   function fallbackCopy(text) {
@@ -1328,87 +2293,25 @@
     ta.value = text;
     document.body.appendChild(ta);
     ta.select();
-    document.execCommand("copy");
+    try { document.execCommand("copy"); } catch (e) {}
     document.body.removeChild(ta);
-    showToast("Direct link copied! Send it to her ❤️");
+    showToast("Permanent room link copied! Send it once, works forever ❤️");
   }
 
+  // --- Gameplay, Vibes, Live AI Questions, Lock & Reveal, Chat ---
   function highlightVibeChip(vibe) {
-    currentVibe = vibe;
     document.querySelectorAll(".vibe-chip").forEach(c => {
       c.classList.toggle("active", c.dataset.vibe === vibe);
     });
   }
 
-  function proposeNextRound(vibe, mode, customText) {
-    if (isGenerating) return;
-    iAmReadyNext = true;
-    pendingNextVibe = vibe;
-    pendingNextMode = mode;
-    if (customText) pendingCustomText = customText;
-
-    if (conn && conn.open) {
-      conn.send({
-        type: "ready_next",
-        vibe: vibe,
-        mode: mode,
-        customText: pendingCustomText
-      });
-    }
-
-    if (partnerReadyNext) {
-      iAmReadyNext = false;
-      partnerReadyNext = false;
-      saveSession();
-      executePendingNext();
-    } else {
-      updateReadyBannerUI();
-      saveSession();
-    }
+  function handleDraftInput() {
+    myDraftAnswer = document.getElementById("myAnswerInput").value;
+    saveCurrentRoomPermanently();
   }
 
-  function executePendingNext() {
-    if (pendingCustomText) {
-      const txt = pendingCustomText;
-      pendingCustomText = null;
-      const label = "✍️ CUSTOM QUESTION";
-      const ts = Date.now();
-      applyNewQuestion(label, txt, ts);
-      if (conn && conn.open) {
-        conn.send({ type: "question", vibe: currentVibe, vibeLabel: label, text: txt, roundUpdatedAt: ts });
-      }
-    } else {
-      requestLiveQuestion(pendingNextVibe, pendingNextMode);
-    }
-  }
-
-  function updateReadyBannerUI() {
-    const banner = document.getElementById("readyBanner");
-    const nextBtn = document.getElementById("nextCardBtn");
-    const surpBtn = document.getElementById("nextSurpriseBtn");
-
-    if (iAmReadyNext && !partnerReadyNext) {
-      banner.style.display = "block";
-      banner.textContent = "⏳ Waiting for " + partnerName + " to finish reading & tap Next (1/2)...";
-      nextBtn.disabled = true;
-      surpBtn.disabled = true;
-      nextBtn.textContent = "Ready ✅ (1/2)";
-    } else if (!iAmReadyNext && partnerReadyNext) {
-      banner.style.display = "block";
-      banner.textContent = "✨ " + partnerName + " is ready! Take your time reading, then tap Next (1/2) ❤️";
-      nextBtn.disabled = false;
-      surpBtn.disabled = false;
-      nextBtn.textContent = "Confirm Next ✅ (2/2)";
-    } else {
-      banner.style.display = "none";
-      nextBtn.disabled = false;
-      surpBtn.disabled = false;
-      nextBtn.textContent = "Ready for Next ➡️";
-    }
-  }
-
-  function selectVibe(vibe, el) {
-    if (isGenerating) return;
+  function selectVibe(vibe) {
+    if (isGenerating || !roomDoc) return;
     document.getElementById("customQBox").classList.remove("open");
     highlightVibeChip(vibe);
     if (isInRevealPhase()) {
@@ -1419,12 +2322,12 @@
   }
 
   function switchCard() {
-    if (isGenerating) return;
-    requestLiveQuestion(currentVibe, "switch");
+    if (isGenerating || !roomDoc) return;
+    requestLiveQuestion(roomDoc.round.vibe || "surprise", "switch");
   }
 
   function triggerSurpriseRound() {
-    if (isGenerating) return;
+    if (isGenerating || !roomDoc) return;
     highlightVibeChip("surprise");
     if (isInRevealPhase()) {
       proposeNextRound("surprise", "surprise", null);
@@ -1434,14 +2337,46 @@
   }
 
   function nextAIQuestion() {
-    if (isGenerating) return;
-    proposeNextRound(currentVibe, "next", null);
+    if (isGenerating || !roomDoc) return;
+    proposeNextRound(roomDoc.round.vibe || "surprise", "next", null);
+  }
+
+  function proposeNextRound(vibe, mode, customText) {
+    if (isGenerating || !roomDoc) return;
+    roleEnteredWithoutCloud = false;
+    const other = otherRoleOf(myRole);
+    roomDoc.round.readyNext[myRole] = true;
+    roomDoc.round.pendingNext = {
+      vibe: vibe || "surprise",
+      mode: mode || "next",
+      customText: customText || roomDoc.round.pendingNext?.customText || null,
+      updatedAt: Date.now()
+    };
+
+    if (roomDoc.round.readyNext[other]) {
+      executePendingNext();
+    } else {
+      saveCurrentRoomPermanently();
+      publishRetainedRoomState(true);
+      publishLiveEvent({ type: "toast", msg: "✨ " + myName + " is ready for the next card!" });
+      renderFullRoomUI();
+    }
+  }
+
+  function executePendingNext() {
+    if (!roomDoc) return;
+    const pend = roomDoc.round.pendingNext || { vibe: "surprise", mode: "next", customText: null };
+    if (pend.customText) {
+      const txt = pend.customText;
+      const label = "✍️ CUSTOM QUESTION";
+      applyNewQuestionToDoc(pend.vibe || "surprise", label, txt, "");
+    } else {
+      requestLiveQuestion(pend.vibe || "surprise", pend.mode || "next");
+    }
   }
 
   function setGeneratingUI(vibe, reasonText) {
     isGenerating = true;
-    iAmReadyNext = false;
-    partnerReadyNext = false;
     const card = document.getElementById("questionCard");
     card.classList.add("loading");
     document.getElementById("qCategory").textContent = "⚡ LIVE AI INVENTING QUESTION...";
@@ -1451,11 +2386,12 @@
     document.getElementById("surpriseBtn").disabled = true;
     document.getElementById("nextCardBtn").disabled = true;
     document.getElementById("nextSurpriseBtn").disabled = true;
-    saveSession();
   }
 
   async function requestLiveQuestion(vibe, mode) {
-    const seq = ++reqSeq;
+    if (!roomDoc || !isSessionActive) return;
+    const seqCall = ++reqSeq;
+    const targetRoom = roomCode;
     let reasonText = "⚡ Live AI is inventing a creative, original question...";
     let toastMsg = "";
 
@@ -1468,31 +2404,62 @@
     }
 
     setGeneratingUI(vibe, reasonText);
-    if (conn && conn.open) {
-      conn.send({ type: "generating", vibe: vibe, reasonText: reasonText });
-    }
+    publishLiveEvent({ type: "generating", vibe: vibe, reasonText: reasonText });
 
     const result = await fetchLiveCreativeAI(vibe);
-    if (seq !== reqSeq || !isSessionActive) return;
+    if (seqCall !== reqSeq || !isSessionActive || roomCode !== targetRoom || !roomDoc) return;
 
-    usedQuestions.add(result.text);
     const baseLabel = VIBE_LABELS[vibe] || "✨ CREATIVE AI";
-    const fullLabel = result.isLive ? `${baseLabel} • ⚡ LIVE AI` : baseLabel;
-    const ts = Date.now();
+    const fullLabel = result.isLive ? (baseLabel + " • ⚡ LIVE AI") : baseLabel;
+    applyNewQuestionToDoc(vibe, fullLabel, result.text, toastMsg);
+  }
 
-    applyNewQuestion(fullLabel, result.text, ts);
-    if (toastMsg) showToast(toastMsg);
+  function applyNewQuestionToDoc(vibe, vibeLabel, text, toastMsg) {
+    if (!roomDoc) return;
+    roleEnteredWithoutCloud = false;
+    isGenerating = false;
+    myDraftAnswer = "";
 
-    if (conn && conn.open) {
-      conn.send({
-        type: "question",
-        vibe: vibe,
-        vibeLabel: fullLabel,
-        text: result.text,
-        roundUpdatedAt: ts,
-        toast: toastMsg
+    const now = Date.now();
+    const nextSeq = (Number(roomDoc.round?.seq) || 0) + 1;
+
+    if (!roomDoc.usedQuestions.includes(text)) {
+      roomDoc.usedQuestions.push(text);
+      if (roomDoc.usedQuestions.length > 50) roomDoc.usedQuestions = roomDoc.usedQuestions.slice(-50);
+    }
+
+    if (roomDoc.chatHistory.length > 0 && roomDoc.chatHistory[roomDoc.chatHistory.length - 1].kind !== "sep") {
+      roomDoc.chatHistory.push({
+        id: "sep_" + nextSeq + "_" + now,
+        kind: "sep",
+        senderRole: myRole,
+        senderName: "",
+        text: "",
+        ts: now
       });
     }
+
+    roomDoc.round = {
+      id: "r_" + nextSeq + "_" + now + "_" + Math.random().toString(36).slice(2, 5),
+      seq: nextSeq,
+      createdAt: now,
+      hasActiveQuestion: true,
+      vibe: vibe || "surprise",
+      vibeLabel: vibeLabel,
+      qText: text,
+      answers: { p1: null, p2: null },
+      answerTs: { p1: 0, p2: 0 },
+      readyNext: { p1: false, p2: false },
+      pendingNext: { vibe: vibe || "surprise", mode: "next", customText: null, updatedAt: now }
+    };
+
+    saveCurrentRoomPermanently();
+    publishRetainedRoomState(true);
+    if (toastMsg) {
+      showToast(toastMsg);
+      publishLiveEvent({ type: "toast", msg: toastMsg });
+    }
+    renderFullRoomUI();
   }
 
   function cleanAIOutput(raw) {
@@ -1528,14 +2495,16 @@
       deep: "Theme: Emotional closeness, feeling safe, unspoken appreciation, values, and peace of heart."
     };
 
-    const recent = Array.from(usedQuestions).slice(-8).join(" | ");
+    const usedSet = new Set(roomDoc?.usedQuestions || []);
+    const recent = Array.from(usedSet).slice(-8).join(" | ");
     const seed = Math.floor(Math.random() * 9999999);
-    const contextHint = lastRoundSummary
-      ? `Optional subtle inspiration from their last answers (do NOT force it, just keep the vibe): ${lastRoundSummary}`
+    const summaryStr = roomDoc?.lastRoundSummary || "";
+    const contextHint = summaryStr
+      ? ("Optional subtle inspiration from their last answers (do NOT force it, just keep the vibe): " + summaryStr)
       : "";
 
     const systemPrompt = "You are a brilliant, witty, warm relationship-game writer creating spontaneous, never-before-seen card prompts for a couple. Never use generic cliche questions like 'what is your favorite color/movie'. Make every question imaginative, vivid, clean, wholesome, and under 28 words. Output ONLY the single question with zero quotes or intro.";
-    const userPrompt = `${themeGoals[actualTheme] || themeGoals.playful} ${twist} ${contextHint} (Unique seed: ${seed}). Do NOT repeat: ${recent || "none"}`;
+    const userPrompt = (themeGoals[actualTheme] || themeGoals.playful) + " " + twist + " " + contextHint + " (Unique seed: " + seed + "). Do NOT repeat: " + (recent || "none");
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 11000);
@@ -1558,18 +2527,18 @@
         if (!r.ok) throw new Error("req1 fail");
         const j = await r.json();
         const txt = cleanAIOutput(j?.choices?.[0]?.message?.content);
-        if (txt.length < 15 || txt.length > 240 || usedQuestions.has(txt)) throw new Error("invalid");
+        if (txt.length < 15 || txt.length > 240 || usedSet.has(txt)) throw new Error("invalid");
         return txt;
       });
 
-      const fullGetPrompt = encodeURIComponent(`${systemPrompt}\n\n${userPrompt}`);
-      const req2 = fetch(`https://text.pollinations.ai/${fullGetPrompt}?model=mistral&seed=${seed + 7}&temperature=1.1`, {
+      const fullGetPrompt = encodeURIComponent(systemPrompt + "\n\n" + userPrompt);
+      const req2 = fetch("https://text.pollinations.ai/" + fullGetPrompt + "?model=mistral&seed=" + (seed + 7) + "&temperature=1.1", {
         signal: controller.signal
       }).then(async r => {
         if (!r.ok) throw new Error("req2 fail");
         const raw = await r.text();
         const txt = cleanAIOutput(raw);
-        if (txt.length < 15 || txt.length > 240 || usedQuestions.has(txt)) throw new Error("invalid");
+        if (txt.length < 15 || txt.length > 240 || usedSet.has(txt)) throw new Error("invalid");
         return txt;
       });
 
@@ -1579,7 +2548,7 @@
       return { text: winnerText, isLive: true };
     } catch (err) {
       clearTimeout(timeoutId);
-      const unused = EMERGENCY_CREATIVE.filter(q => !usedQuestions.has(q));
+      const unused = EMERGENCY_CREATIVE.filter(q => !usedSet.has(q));
       const pool = unused.length > 0 ? unused : EMERGENCY_CREATIVE;
       return {
         text: pool[Math.floor(Math.random() * pool.length)],
@@ -1593,125 +2562,47 @@
   }
 
   function sendCustomQuestion() {
+    if (!roomDoc) return;
     const txt = document.getElementById("customQInput").value.trim();
     if (!txt) return;
     document.getElementById("customQInput").value = "";
     document.getElementById("customQBox").classList.remove("open");
 
     if (isInRevealPhase()) {
-      proposeNextRound(currentVibe, "custom", txt);
+      proposeNextRound(roomDoc.round.vibe || "surprise", "custom", txt);
     } else {
       const label = "✍️ ASKED BY " + myName.toUpperCase();
-      const ts = Date.now();
-      applyNewQuestion(label, txt, ts);
-      if (conn && conn.open) {
-        conn.send({ type: "question", vibe: currentVibe, vibeLabel: label, text: txt, roundUpdatedAt: ts });
-      }
-    }
-  }
-
-  function addChatSeparatorIfNeeded(sepIdTs) {
-    if (chatHistory.length > 0 && chatHistory[chatHistory.length - 1].kind !== "sep") {
-      const sepId = "sep_" + (sepIdTs || Date.now());
-      if (!seenChatIds.has(sepId)) {
-        const entry = { id: sepId, kind: "sep", ts: sepIdTs || Date.now() };
-        seenChatIds.add(sepId);
-        chatHistory.push(entry);
-        appendChatDomItem(entry);
-      }
-    }
-  }
-
-  function applyNewQuestion(vibeLabel, text, ts) {
-    const roundTs = ts || Date.now();
-    isGenerating = false;
-    resumeGenerateNeeded = false;
-    hasActiveQuestion = true;
-    roundUpdatedAt = roundTs;
-    myAnswer = null;
-    myDraftAnswer = "";
-    partnerAnswer = null;
-    iAmReadyNext = false;
-    partnerReadyNext = false;
-    pendingCustomText = null;
-
-    addChatSeparatorIfNeeded(roundTs);
-    renderCurrentRoundState(vibeLabel, text);
-    saveSession();
-  }
-
-  function renderCurrentRoundState(vibeLabel, text) {
-    document.getElementById("questionCard").classList.remove("loading");
-    document.getElementById("qCategory").textContent = vibeLabel;
-    document.getElementById("qText").textContent = text;
-    document.getElementById("switchBtn").disabled = false;
-    document.getElementById("surpriseBtn").disabled = false;
-
-    if (myAnswer !== null && partnerAnswer !== null) {
-      checkReveal();
-    } else {
-      document.getElementById("answerPhase").style.display = "block";
-      document.getElementById("revealPhase").style.display = "none";
-      if (myAnswer !== null) {
-        document.getElementById("myAnswerInput").value = myAnswer;
-        document.getElementById("myAnswerInput").disabled = true;
-        document.getElementById("lockBtn").disabled = true;
-        document.getElementById("lockBtn").textContent = "Locked In! Waiting... ⏳";
-      } else {
-        document.getElementById("myAnswerInput").value = myDraftAnswer || "";
-        document.getElementById("myAnswerInput").disabled = false;
-        document.getElementById("lockBtn").disabled = false;
-        document.getElementById("lockBtn").textContent = "Lock In Answer 🔒";
-      }
-      updateReadyBannerUI();
-      updatePartnerState();
+      applyNewQuestionToDoc(roomDoc.round.vibe || "surprise", label, txt, "");
     }
   }
 
   function lockAnswer() {
+    if (!roomDoc || !roomDoc.round.hasActiveQuestion) return;
+    roleEnteredWithoutCloud = false;
     const val = document.getElementById("myAnswerInput").value.trim();
-    if (!val) return showToast("Write your answer first!", true);
-    myAnswer = val;
+    if (!val) {
+      showToast("Write your answer first!", true);
+      return;
+    }
     myDraftAnswer = "";
-    document.getElementById("myAnswerInput").disabled = true;
-    document.getElementById("lockBtn").disabled = true;
-    document.getElementById("lockBtn").textContent = "Locked In! Waiting... ⏳";
-    if (conn && conn.open) {
-      conn.send({ type: "locked", answer: myAnswer });
-    }
-    checkReveal();
-    saveSession();
-  }
+    roomDoc.round.answers[myRole] = val;
+    roomDoc.round.answerTs[myRole] = Date.now();
 
-  function updatePartnerState() {
-    const el = document.getElementById("partnerState");
-    if (partnerAnswer && !myAnswer) {
-      el.textContent = "🔒 " + partnerName + " locked in! Waiting for your answer...";
-      el.style.color = "#f472b6";
-    } else if (myAnswer && !partnerAnswer) {
-      el.textContent = "✅ Locked in! Waiting for " + partnerName + " to finish...";
-      el.style.color = "#10b981";
-    } else {
-      el.textContent = "Both answers stay hidden until you both lock in 💭";
-      el.style.color = "#cbd5e1";
+    if (isInRevealPhase()) {
+      const pName = getPartnerName();
+      const myAns = getMyLockedAnswer() || "";
+      const pAns = getPartnerLockedAnswer() || "";
+      roomDoc.lastRoundSummary = myName + ' said "' + myAns.slice(0, 70) + '", ' + pName + ' said "' + pAns.slice(0, 70) + '"';
     }
-  }
 
-  function checkReveal() {
-    updatePartnerState();
-    if (myAnswer !== null && partnerAnswer !== null) {
-      lastRoundSummary = `${myName} said "${myAnswer.slice(0, 70)}", ${partnerName} said "${partnerAnswer.slice(0, 70)}"`;
-      updateReadyBannerUI();
-      document.getElementById("answerPhase").style.display = "none";
-      document.getElementById("revealPhase").style.display = "block";
-      document.getElementById("myCardTitle").textContent = myName + " (You)";
-      document.getElementById("myCardBody").textContent = myAnswer;
-      document.getElementById("partnerCardTitle").textContent = partnerName;
-      document.getElementById("partnerCardBody").textContent = partnerAnswer;
-    }
+    saveCurrentRoomPermanently();
+    publishRetainedRoomState(true);
+    renderFullRoomUI();
   }
 
   function sendChat(preset) {
+    if (!roomDoc) return;
+    roleEnteredWithoutCloud = false;
     const input = document.getElementById("chatInput");
     const msg = preset || input.value.trim();
     if (!msg) return;
@@ -1720,171 +2611,156 @@
     const msgObj = {
       id: "m_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
       kind: "msg",
-      senderRole: isHost ? "host" : "guest",
+      senderRole: myRole,
       senderName: myName,
       text: msg,
       ts: Date.now()
     };
 
-    seenChatIds.add(msgObj.id);
-    chatHistory.push(msgObj);
-    appendChatDomItem(msgObj);
-    saveSession();
+    roomDoc.chatHistory.push(msgObj);
+    if (roomDoc.chatHistory.length > 180) {
+      roomDoc.chatHistory = roomDoc.chatHistory.slice(-180);
+    }
 
-    if (conn && conn.open) {
-      conn.send({
-        type: "chat",
-        id: msgObj.id,
-        senderRole: msgObj.senderRole,
-        senderName: msgObj.senderName,
-        msg: msgObj.text,
-        ts: msgObj.ts
-      });
+    saveCurrentRoomPermanently();
+    publishRetainedRoomState(true);
+    renderChatHistoryDOM();
+  }
+
+  // --- Full Declarative Room UI Renderer ---
+  function renderFullRoomUI() {
+    if (!roomDoc) return;
+    updateHeaderRoomControls();
+    updateConnectionStatusUI();
+
+    const r = roomDoc.round;
+    highlightVibeChip(r.vibe || "surprise");
+
+    if (!isGenerating) {
+      document.getElementById("questionCard").classList.remove("loading");
+      document.getElementById("qCategory").textContent = r.vibeLabel || "✨ CREATIVE AI";
+      document.getElementById("qText").textContent = r.qText || "Crafting a spontaneous creative question...";
+      document.getElementById("switchBtn").disabled = false;
+      document.getElementById("surpriseBtn").disabled = false;
+    }
+
+    const myAns = getMyLockedAnswer();
+    const pAns = getPartnerLockedAnswer();
+    const pName = getPartnerName();
+
+    if (myAns !== null && pAns !== null) {
+      roomDoc.lastRoundSummary = myName + ' said "' + myAns.slice(0, 70) + '", ' + pName + ' said "' + pAns.slice(0, 70) + '"';
+      document.getElementById("answerPhase").style.display = "none";
+      document.getElementById("revealPhase").style.display = "block";
+      document.getElementById("myCardTitle").textContent = myName + " (You)";
+      document.getElementById("myCardBody").textContent = myAns;
+      document.getElementById("partnerCardTitle").textContent = pName;
+      document.getElementById("partnerCardBody").textContent = pAns;
+      updateReadyBannerUI();
+    } else {
+      document.getElementById("answerPhase").style.display = "block";
+      document.getElementById("revealPhase").style.display = "none";
+
+      const ansInput = document.getElementById("myAnswerInput");
+      const lockBtn = document.getElementById("lockBtn");
+      if (myAns !== null) {
+        ansInput.value = myAns;
+        ansInput.disabled = true;
+        lockBtn.disabled = true;
+        lockBtn.textContent = "Locked In! Waiting... ⏳";
+      } else {
+        if (document.activeElement !== ansInput) {
+          ansInput.value = myDraftAnswer || "";
+        }
+        ansInput.disabled = isGenerating;
+        lockBtn.disabled = isGenerating;
+        lockBtn.textContent = "Lock In Answer 🔒";
+      }
+
+      const stateEl = document.getElementById("partnerState");
+      if (pAns !== null && myAns === null) {
+        stateEl.textContent = "🔒 " + pName + " locked in! Waiting for your answer...";
+        stateEl.style.color = "#f472b6";
+      } else if (myAns !== null && pAns === null) {
+        stateEl.textContent = "✅ Locked in! Saved permanently — waiting for " + pName + "...";
+        stateEl.style.color = "#10b981";
+      } else {
+        stateEl.textContent = "Both answers stay hidden until you both lock in 💬";
+        stateEl.style.color = "#cbd5e1";
+      }
+    }
+
+    renderChatHistoryDOM();
+  }
+
+  function updateReadyBannerUI() {
+    if (!roomDoc) return;
+    const banner = document.getElementById("readyBanner");
+    const nextBtn = document.getElementById("nextCardBtn");
+    const surpBtn = document.getElementById("nextSurpriseBtn");
+    const other = otherRoleOf(myRole);
+    const iReady = Boolean(roomDoc.round.readyNext?.[myRole]);
+    const pReady = Boolean(roomDoc.round.readyNext?.[other]);
+    const pName = getPartnerName();
+
+    if (iReady && !pReady) {
+      banner.style.display = "block";
+      banner.textContent = "⏳ Waiting for " + pName + " to finish reading & tap Next (1/2)...";
+      nextBtn.disabled = true;
+      surpBtn.disabled = true;
+      nextBtn.textContent = "Ready ✅ (1/2)";
+    } else if (!iReady && pReady) {
+      banner.style.display = "block";
+      banner.textContent = "✨ " + pName + " is ready! Take your time reading, then tap Next (1/2) ❤️";
+      nextBtn.disabled = isGenerating;
+      surpBtn.disabled = isGenerating;
+      nextBtn.textContent = "Confirm Next ✅ (2/2)";
+    } else {
+      banner.style.display = "none";
+      nextBtn.disabled = isGenerating;
+      surpBtn.disabled = isGenerating;
+      nextBtn.textContent = "Ready for Next ➡️";
     }
   }
 
-  function receiveChatPacket(data) {
-    const id = data.id || ("m_" + (data.ts || Date.now()) + "_p");
-    if (seenChatIds.has(id)) return;
-    const entry = {
-      id: id,
-      kind: "msg",
-      senderRole: data.senderRole || (isHost ? "guest" : "host"),
-      senderName: data.senderName || partnerName,
-      text: data.msg,
-      ts: data.ts || Date.now()
-    };
-    seenChatIds.add(id);
-    chatHistory.push(entry);
-    appendChatDomItem(entry);
-    saveSession();
-  }
-
-  function appendChatDomItem(item) {
+  function renderChatHistoryDOM() {
     const box = document.getElementById("chatMessages");
-    if (item.kind === "sep") {
-      if (box.children.length > 0 && !box.lastElementChild.classList.contains("chat-round-sep")) {
-        const sep = document.createElement("div");
-        sep.className = "chat-round-sep";
-        sep.textContent = "— New Question —";
-        box.appendChild(sep);
+    box.innerHTML = "";
+    if (!roomDoc || !Array.isArray(roomDoc.chatHistory)) return;
+
+    const pName = getPartnerName();
+    for (let i = 0; i < roomDoc.chatHistory.length; i++) {
+      const item = roomDoc.chatHistory[i];
+      if (!item) continue;
+      if (item.kind === "sep") {
+        if (box.children.length > 0 && !box.lastElementChild.classList.contains("chat-round-sep")) {
+          const sep = document.createElement("div");
+          sep.className = "chat-round-sep";
+          sep.textContent = "— New Question —";
+          box.appendChild(sep);
+        }
+      } else {
+        const isMe = item.senderRole === myRole;
+        const div = document.createElement("div");
+        div.className = "msg " + (isMe ? "me" : "them");
+        const displaySender = item.senderName || pName;
+        div.textContent = (isMe ? "" : (displaySender + ": ")) + item.text;
+        box.appendChild(div);
       }
-    } else {
-      const myRole = isHost ? "host" : "guest";
-      const isMe = item.senderRole === myRole;
-      const div = document.createElement("div");
-      div.className = "msg " + (isMe ? "me" : "them");
-      const displaySender = item.senderName || partnerName;
-      div.textContent = (isMe ? "" : displaySender + ": ") + item.text;
-      box.appendChild(div);
     }
     box.scrollTop = box.scrollHeight;
   }
 
-  function renderFullChatHistory() {
-    const box = document.getElementById("chatMessages");
-    box.innerHTML = "";
-    for (let i = 0; i < chatHistory.length; i++) {
-      appendChatDomItem(chatHistory[i]);
-    }
-  }
+  // --- Startup Routing: Never Expires, Restores Active Room or Link Anytime ---
+  async function initApp() {
+    migrateLegacyV2IfPresent();
 
-  // --- Automatic Session Restore on Page Load / Refresh ---
-  function findSessionToRestore(urlRoom) {
-    const rawTab = safeSessionGet(SESSION_KEY);
-    if (rawTab) {
-      try {
-        const parsed = JSON.parse(rawTab);
-        if (parsed && parsed.roomCode) {
-          if (!urlRoom || urlRoom === parsed.roomCode) {
-            return parsed;
-          }
-        }
-      } catch (e) {}
-    }
-
-    const rawBackup = safeLocalGet(BACKUP_KEY);
-    if (rawBackup) {
-      try {
-        const backup = JSON.parse(rawBackup);
-        const freshEnough = backup && backup.roomCode && (Date.now() - (backup.savedAt || 0) < 86400000);
-        if (freshEnough && (!urlRoom || urlRoom === backup.roomCode)) {
-          const aliveTs = Number(safeLocalGet(HOST_ALIVE_PREFIX + backup.roomCode) || "0");
-          const hostOpenInOtherTab = (Date.now() - aliveTs) < 4500;
-          if (!(hostOpenInOtherTab && backup.isHost)) {
-            return backup;
-          }
-        }
-      } catch (e) {}
-    }
-    return null;
-  }
-
-  async function restoreSession(saved) {
-    roomCode = saved.roomCode;
-    isHost = Boolean(saved.isHost);
-    hasConnectedOnce = Boolean(saved.hasConnectedOnce);
-    isSessionActive = true;
-    myName = saved.myName || (isHost ? "Player 1" : "Player 2");
-    partnerName = saved.partnerName || "Partner";
-    roundUpdatedAt = saved.roundUpdatedAt || 0;
-    hasActiveQuestion = Boolean(saved.hasActiveQuestion);
-    currentVibe = saved.currentVibe || "surprise";
-    myAnswer = (saved.myAnswer !== undefined) ? saved.myAnswer : null;
-    myDraftAnswer = saved.myDraftAnswer || "";
-    partnerAnswer = (saved.partnerAnswer !== undefined) ? saved.partnerAnswer : null;
-    iAmReadyNext = Boolean(saved.iAmReadyNext);
-    partnerReadyNext = Boolean(saved.partnerReadyNext);
-    pendingNextVibe = saved.pendingNextVibe || currentVibe;
-    pendingNextMode = saved.pendingNextMode || "next";
-    pendingCustomText = saved.pendingCustomText || null;
-    lastRoundSummary = saved.lastRoundSummary || "";
-    usedQuestions = new Set(Array.isArray(saved.usedQuestions) ? saved.usedQuestions : []);
-
-    chatHistory = Array.isArray(saved.chatHistory) ? saved.chatHistory : [];
-    seenChatIds = new Set(chatHistory.map(c => c.id).filter(Boolean));
-
-    document.getElementById("playerName").value = myName;
-    document.getElementById("displayRoomCode").textContent = roomCode;
-    updateUrlRoomParam(roomCode);
-
-    const targetScreen = saved.screen === "waitScreen" ? "waitScreen" : "gameScreen";
-    highlightVibeChip(currentVibe);
-    renderFullChatHistory();
-
-    if (targetScreen === "gameScreen") {
-      if (hasActiveQuestion && saved.qText) {
-        renderCurrentRoundState(saved.qCategory || VIBE_LABELS[currentVibe] || "✨ CREATIVE AI", saved.qText);
-      } else if (isHost) {
-        resumeGenerateNeeded = true;
-      }
-      if (saved.wasGenerating && isHost) {
-        resumeGenerateNeeded = true;
-      }
-    }
-
-    document.getElementById("statusDot").classList.remove("online");
-    document.getElementById("statusText").textContent = targetScreen === "waitScreen" ? "Restoring..." : "Reconnecting...";
-    switchScreen(targetScreen);
-
-    try {
-      await ensurePeerLoaded();
-      if (!isSessionActive) return;
-      if (isHost) {
-        startHostPeer(true, 0);
-      } else {
-        startGuestPeer(true);
-      }
-    } catch (e) {
-      showToast("Waiting for internet to reconnect...", true);
-    }
-  }
-
-  function initApp() {
     const savedName = safeLocalGet(NAME_KEY);
     if (savedName) {
       document.getElementById("playerName").value = savedName;
     }
+
+    await hydrateRoomsMapFromIDB();
 
     let urlRoom = "";
     try {
@@ -1892,16 +2768,39 @@
       urlRoom = (params.get("room") || "").trim().toUpperCase();
     } catch (e) {}
 
-    const saved = findSessionToRestore(urlRoom);
-    if (saved) {
-      restoreSession(saved);
+    const map = loadRoomsMap();
+
+    // 1. Opened via ?room=CODE link
+    if (urlRoom) {
+      if (map[urlRoom] && map[urlRoom].roomDoc && !isRoleActiveInAnotherSameBrowserTab(urlRoom, map[urlRoom].myRole || "p1")) {
+        openSavedRoomFromHistory(urlRoom);
+      } else {
+        openDirectLinkDiscovery(urlRoom, false);
+      }
       return;
     }
 
-    if (urlRoom) {
-      clearSavedSession();
-      document.getElementById("joinCodeInput").value = urlRoom;
+    // 2. Per-tab session (e.g. tab refresh)
+    const rawTab = safeSessionGet(TAB_SESSION_KEY);
+    if (rawTab) {
+      try {
+        const tabInfo = JSON.parse(rawTab);
+        if (tabInfo && tabInfo.roomCode && map[tabInfo.roomCode]) {
+          openSavedRoomFromHistory(tabInfo.roomCode);
+          return;
+        }
+      } catch (e) {}
     }
+
+    // 3. Last active room before phone turned off / browser closed (zero expiry!)
+    const lastActiveCode = safeLocalGet(ACTIVE_ROOM_KEY);
+    if (lastActiveCode && map[lastActiveCode] && !isRoleActiveInAnotherSameBrowserTab(lastActiveCode, map[lastActiveCode].myRole || "p1")) {
+      openSavedRoomFromHistory(lastActiveCode);
+      return;
+    }
+
+    // 4. Lobby with Saved Permanent Rooms History
+    renderSavedRoomsList();
   }
 
   initApp();
