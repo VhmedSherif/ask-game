@@ -2473,88 +2473,354 @@
   }
 
   async function fetchLiveCreativeAI(vibe) {
-    const allThemes = ["us_future", "playful", "wyr", "culture", "deep"];
-    const actualTheme = vibe === "surprise"
-      ? allThemes[Math.floor(Math.random() * allThemes.length)]
-      : vibe;
+    if (!window._arAI) {
+      const BANK = {
+        us_future: [
+          "Fast-forward five years to a lazy Friday morning together—what does our kitchen smell like, and what is playing softly in the background?",
+          "If we secretly booked a surprise weekend trip for just the two of us next month, what kind of view would you hope to wake up to?",
+          "When we eventually design our own cozy living space, what is one non-negotiable corner or detail you definitely want in it?",
+          "What is one tiny everyday ritual—midnight tea, sunset walks, or cooking side by side—that you cannot wait for us to turn into a habit?",
+          "Suppose we started an annual winter tradition that belongs strictly to the two of us—what should we make it?",
+          "Imagine we are hosting our very first dinner night together in our own place—what dish are we proudly serving?",
+          "What was the exact micro-moment early on when you quietly thought, 'Okay, this person is genuinely special to me'?",
+          "When we are eighty years old sitting on a porch together, what funny habit of mine will you still be teasing me about?",
+          "If we left a time-capsule letter for ourselves to open three years from today, what reminder about right now goes inside?",
+          "What is one skill, hobby, or recipe you would love for the two of us to learn from scratch side by side?",
+          "If we had a secret codeword meaning 'let us sneak out and get dessert together right now', what should the word be?",
+          "When you picture a peaceful rainy evening with me in the future, what are each of us doing in that room?"
+        ],
+        playful: [
+          "Suppose we entered a chaotic TV cooking showdown with mystery ingredients—who calls the shots, and who accidentally burns the garlic?",
+          "If we had to pull off a harmless heist just to steal the world's best late-night dessert, what is each of our roles?",
+          "Imagine an alien studied our chats to learn how humans flirt—what hilarious misunderstanding would it walk away with?",
+          "If we swapped phones and daily schedules for twenty-four hours, what part of my routine would make you laugh first?",
+          "If you had to invent a signature ice-cream flavor named after our dynamic, what three ingredients are swirling in it?",
+          "Between the two of us, who gets us delightfully lost on a trip while insisting they know a shortcut?",
+          "Suppose we made a playful bet this week where the loser owes a handwritten note and snacks—what are we betting on?",
+          "If you could replace my morning alarm tomorrow with any five-second voice note from you, what would you say?",
+          "If our personalities were two animated characters teamed up on a quest, which duo matches us uncannily well?",
+          "Imagine we competed in a silent staring contest across a cafe table—who cracks a smile first and why?",
+          "Suppose we opened a midnight food truck together next summer—what punny name is painted on the side?",
+          "If you had to sum up my texting style using three emojis and a movie genre, what are you picking?"
+        ],
+        wyr: [
+          "Would you rather spend a stormy weekend together in a candlelit mountain cabin, or wake up in a sunny coastal town with zero itinerary?",
+          "Would you rather replay our favorite past conversation word-for-word, or sneak a five-minute peek at our life five years ahead?",
+          "Would you rather cook a messy three-course dinner together at midnight, or wander street-food stalls in a new city until dawn?",
+          "Would you rather always know the exact song stuck in my head, or have me always sense when you quietly need a hug?",
+          "Would you rather receive short handwritten notes hidden in your pockets, or unexpected late-night voice messages whenever I miss you?",
+          "Would you rather share one tiny umbrella in warm summer rain, or get snowed in together with hot chocolate and board games?",
+          "Would you rather build a cozy home library filled with books and tea, or a rooftop terrace strung with warm lights and plants?",
+          "Would you rather have teleportation for ten-minute coffee breaks any day, or four guaranteed month-long vacations together every year?",
+          "Would you rather wake up early together to catch an empty beach at sunrise, or stay out late watching waves under moonlight?",
+          "Would you rather play twenty deep questions on a long night drive, or trade funny childhood stories until two in the morning?"
+        ],
+        culture: [
+          "What smell from a kitchen or street instantly transports you back to the safest, happiest corner of your childhood?",
+          "If you cooked me the one dish that means 'home and comfort' in your family, what is on the plate and what story comes with it?",
+          "What is a local phrase or expression from your background that has no exact translation—and when would you use it with me?",
+          "Growing up, what did weekend afternoons or family gatherings feel like in your house?",
+          "What is one tradition or value you grew up around that you genuinely want to carry into your own future home?",
+          "If you took me on a twilight walk through the streets you know best, where are we stopping for tea or a snack?",
+          "If we blended the best morning rituals from both of our worlds into one slow weekend breakfast, what is on the table?",
+          "What homemade dessert or late-night treat from where you live do I absolutely need to try with you?",
+          "Which season in your hometown feels the most magical, and how does the mood of the city change when it arrives?",
+          "In your home growing up, how did people show love without saying it directly—tea, sliced fruit, favors, or teasing?"
+        ],
+        deep: [
+          "When your mind feels overloaded after a long day, what kind of presence helps you exhale most—quiet closeness, humor, or talking it out?",
+          "What is one small, subtle thing I have said or done recently that stayed warm in your thoughts longer than I probably realized?",
+          "In close relationships, what makes you feel truly understood without having to over-explain yourself?",
+          "What is a side of your personality that most people miss at first glance, yet you feel comfortable showing around me?",
+          "What does emotional safety look and sound like to you during a disagreement between two people who care deeply about each other?",
+          "How can I always tell—even over text or quiet moments—when you need a little extra gentleness on a tough day?",
+          "What quality in how we communicate makes this connection feel refreshing compared to what you expected?",
+          "When you think about peace of heart rather than excitement alone, what brings you that calm feeling with someone?",
+          "What is one question you have secretly wondered about me, yet waited for the right quiet moment to ask?",
+          "What is something you never want us to take for granted as we grow closer and more comfortable together?"
+        ]
+      };
 
-    const creativeTwists = [
-      "Use a vivid imaginative scenario ('Imagine if...', 'Suppose we...', 'If we had to...').",
-      "Ask about a specific hyper-relatable micro-moment or funny hypothetical adventure together.",
-      "Frame it like an intriguing story prompt or playful debate between the two of them.",
-      "Focus on a sensory memory, future dream, or creative 'what if' twist.",
-      "Make it witty, warm, and deeply personal—something they have definitely never been asked before."
-    ];
-    const twist = creativeTwists[Math.floor(Math.random() * creativeTwists.length)];
+      const GEN = {
+        us_future: {
+          a: ["Imagine ", "Picture us ", "Suppose ", "Fast-forward to "],
+          b: [
+            "three years from now on a crisp autumn evening",
+            "our very first spontaneous trip with two small carry-ons",
+            "a slow unplugged Sunday morning in our future home",
+            "two summers from now by an open window near the sea",
+            "a random rainy Wednesday night years down the road",
+            "five winters from now wrapped in warm blankets with hot drinks",
+            "an unexpected mid-week day off together with nowhere to rush",
+            "a quiet golden-hour walk through a city we both adore",
+            "a cozy Friday night after decorating a new room together",
+            "an early sunrise coastal drive with warm coffee in hand"
+          ],
+          c: [
+            "when we invent a tiny weekly ritual that belongs only to us",
+            "when we stay up past midnight mapping out our next adventure",
+            "when we cook a late dinner with music humming in the kitchen",
+            "when we step onto a balcony just to watch the sky change colors",
+            "when we flip through candid photos from our favorite days",
+            "when we switch off both phones for twelve hours in our own bubble",
+            "when we set up an impromptu picnic right on the living-room rug",
+            "when we write a short note for our future selves to open years later"
+          ],
+          d: [
+            "—what tiny detail in that scene makes you smile and think 'we really made it'?",
+            "—what is the very first thing you picture us talking or laughing about?",
+            "—which part of that moment would you freeze in memory forever?",
+            "—what small gesture from me right then would mean the most to you?",
+            "—what soundtrack, scent, or flavor belongs right in that moment?",
+            "—what part of that ordinary scene secretly makes your heart happiest?"
+          ]
+        },
+        playful: {
+          a: [
+            "Suppose we teamed up in a mysterious vintage-hotel escape room",
+            "Imagine we had three hours in an empty airport with twenty dollars for snacks",
+            "Suppose we entered a road-trip challenge using paper maps and zero GPS",
+            "Imagine we filmed a five-minute cooking show together in one unedited take",
+            "Suppose we got VIP passes to wander an amusement park after closing",
+            "Imagine we swapped playlists and had to guess the story behind the top three songs",
+            "Suppose we went to a midnight market and each bought one mystery gift under ten dollars",
+            "Imagine we tried painting portraits of each other in ten minutes without peeking",
+            "Suppose we had to assemble a twenty-piece bookshelf without reading the manual",
+            "Imagine we opened a tiny pop-up dessert stand for one weekend together"
+          ],
+          b: [
+            "and everything went hilariously off-script in ten minutes",
+            "and only one of us was allowed to act as the serious strategist",
+            "while trying to keep a completely straight face the entire time",
+            "with a grand prize of two open plane tickets on the line",
+            "while improvising confidently like we planned every second",
+            "and we communicated half our plan using ridiculous hand signals",
+            "with a fifteen-minute countdown ticking on the wall"
+          ],
+          c: [
+            "—who takes charge first, and what funny move ends up saving the day?",
+            "—what habit of mine would instantly crack you up in the middle of it?",
+            "—which of us bends the rules first, and what is our excuse?",
+            "—what unexpected hidden talent would you surprise me with right there?",
+            "—who plays the calm mastermind and who brings the creative chaos?",
+            "—what title would that chaotic episode of our story earn?"
+          ]
+        },
+        wyr: {
+          pairs: [
+            ["have a private rooftop cinema night with homemade snacks", "take a midnight drive along an empty coastal road with our favorite songs"],
+            ["explore hidden cafes in an old historic city all weekend", "unwind in a quiet wooden cabin surrounded by misty pine trees"],
+            ["receive a surprise voice note from me right before sleep", "wake up to a warm long message waiting beside your morning coffee"],
+            ["cook messy homemade pizza from scratch together at home", "dress up for a candlelit corner table at a tiny hidden restaurant"],
+            ["have an instant portal connecting our rooms for thirty minutes nightly", "take three unforgettable two-week trips together anywhere each year"],
+            ["share a quiet sunrise breakfast overlooking calm waves", "stay up watching city lights and talking until two in the morning"],
+            ["keep a shared jar of handwritten favorite memories each month", "record a ten-second video clip together on every date we have"],
+            ["get caught in warm summer rain on a long evening walk", "spend a chilly winter night indoors playing cards over hot tea"],
+            ["let me plan a full mystery date where you know zero details beforehand", "design every stop of our dream day together side by side"],
+            ["open a cozy seaside bookshop-and-espresso bar together", "run a charming mountain guesthouse for travelers"],
+            ["rent vintage bicycles along a riverside trail at sunset", "take an evening ferry ride together with hot tea and sea breeze"],
+            ["bake warm cinnamon rolls together at midnight", "hunt down the best late-night street food across town together"],
+            ["have a private inside-joke phrase that makes us smile in any crowd", "have a secret signal meaning 'let us leave and go stargazing'"],
+            ["sleep in an overwater bungalow listening to gentle waves", "stay in a glass-roofed cabin watching the northern lights"]
+          ],
+          mod: [
+            "this coming weekend",
+            "with both phones on airplane mode",
+            "every year as our signature tradition",
+            "after a long busy week",
+            "for our next special celebration",
+            "with zero alarms the next morning"
+          ],
+          end: [
+            "—and what makes that choice pull at your heart more?",
+            "—and what detail would you add to make it unforgettable?",
+            "—and which side do you bet I am secretly picking right now?",
+            "—and who between us would enjoy that vibe even more?",
+            "—and why does that option feel so much like us?"
+          ]
+        },
+        culture: {
+          a: [
+            "a homemade family meal that always brings everyone together",
+            "a street sound, evening breeze, or familiar corner from your neighborhood",
+            "a festive holiday night tradition from when you were growing up",
+            "a piece of advice from an elder or parent that aged beautifully",
+            "an afternoon tea or snack ritual that instantly feels like comfort",
+            "a quiet local spot in your city where time seems to slow down",
+            "a song or melody that played at home during happy times",
+            "a warm way people in your culture welcome someone they care about",
+            "a childhood after-school treat or routine you still fondly remember"
+          ],
+          b: [
+            "If you shared {X} with me for the very first time,",
+            "Thinking back to {X},",
+            "Suppose we dedicated a slow evening to experiencing {X} together—",
+            "If you painted a picture in words of {X},"
+          ],
+          c: [
+            "what story behind it helps me understand how you grew up?",
+            "what tiny detail about it still warms your heart every time?",
+            "how would you recreate that feeling for the two of us one day?",
+            "why has that piece of your roots stayed so meaningful to you?",
+            "which flavor, scent, or sound from it do you miss most?"
+          ]
+        },
+        deep: {
+          a: [
+            "In moments when life feels loud or uncertain,",
+            "Thinking about how trust grows quietly between two people,",
+            "When you let your guard all the way down with someone close,",
+            "Looking honestly at what makes your heart feel at home,",
+            "Beneath the everyday jokes and routines between two partners,",
+            "When you feel genuinely cared for without having to ask,",
+            "Reflecting on the kind of love that feels steady rather than stressful,",
+            "When two people listen to truly understand rather than just reply,"
+          ],
+          b: [
+            "what small gesture speaks louder to you than grand promises ever could",
+            "what makes a conversation leave you feeling lighter instead of drained",
+            "what subtle sign tells you 'I am completely safe to be myself here'",
+            "what unspoken reassurance means the world to you on a heavy day",
+            "what quiet habit builds unshakable closeness over months and years",
+            "what part of your inner world do you cherish having someone truly notice",
+            "what makes vulnerability feel natural instead of scary with the right person"
+          ],
+          c: [
+            "—and how have you felt shades of that between us?",
+            "—and what is the best way I can show up like that for you?",
+            "—and when did you first realize how much that matters to you?",
+            "—and what does that look like on an ordinary weekday?",
+            "—and what makes that feeling so rare when you actually find it?"
+          ]
+        }
+      };
 
-    const themeGoals = {
-      us_future: "Theme: Romance, building a future together, dreaming about trips/home, or first impressions.",
-      playful: "Theme: Funny, witty, mischievous banter, road trips, snacks, or cute hypothetical chaos.",
-      wyr: "Theme: An imaginative, tough-but-fun 'Would you rather...' dilemma tailored for two people falling for each other.",
-      culture: "Theme: Blending two worlds, food, family traditions, languages, cozy home vibes, and daily rituals.",
-      deep: "Theme: Emotional closeness, feeling safe, unspoken appreciation, values, and peace of heart."
-    };
+      const STOP = new Set(["what","when","where","which","would","could","should","have","from","with","that","this","your","ours","about","into","between","together","imagine","suppose","rather","there","their","make","most","more","some","very","just","only","first","right","like","think","feel","picture"]);
+      const KEY = "askreveal_seen_vault_v4";
+      let list = [];
+      try { list = JSON.parse(localStorage.getItem(KEY) || "[]"); if (!Array.isArray(list)) list = []; } catch (e) { list = []; }
+      const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+      const seen = new Set(list.map(norm).filter(Boolean));
+      const tokCache = new Map();
+      const toks = (s) => {
+        const k = norm(s);
+        if (tokCache.has(k)) return tokCache.get(k);
+        const t = new Set(k.split(" ").filter(w => w.length >= 4 && !STOP.has(w)));
+        if (tokCache.size > 4000) tokCache.clear();
+        tokCache.set(k, t);
+        return t;
+      };
+      const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+      window._arAI = { BANK, GEN, KEY, list, seen, norm, toks, pick, stems: [] };
+    }
 
-    const usedSet = new Set(roomDoc?.usedQuestions || []);
-    const recent = Array.from(usedSet).slice(-8).join(" | ");
-    const seed = Math.floor(Math.random() * 9999999);
-    const summaryStr = roomDoc?.lastRoundSummary || "";
-    const contextHint = summaryStr
-      ? ("Optional subtle inspiration from their last answers (do NOT force it, just keep the vibe): " + summaryStr)
-      : "";
+    const S = window._arAI;
+    if (typeof usedQuestions !== "undefined" && usedQuestions && typeof usedQuestions.forEach === "function") {
+      usedQuestions.forEach(q => { const k = S.norm(q); if (k) S.seen.add(k); });
+    }
+    if (typeof roomDoc !== "undefined" && roomDoc && Array.isArray(roomDoc.usedQuestions)) {
+      roomDoc.usedQuestions.forEach(q => { const k = S.norm(q); if (k) S.seen.add(k); });
+    }
 
-    const systemPrompt = "You are a brilliant, witty, warm relationship-game writer creating spontaneous, never-before-seen card prompts for a couple. Never use generic cliche questions like 'what is your favorite color/movie'. Make every question imaginative, vivid, clean, wholesome, and under 28 words. Output ONLY the single question with zero quotes or intro.";
-    const userPrompt = (themeGoals[actualTheme] || themeGoals.playful) + " " + twist + " " + contextHint + " (Unique seed: " + seed + "). Do NOT repeat: " + (recent || "none");
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 11000);
+    const themes = ["us_future", "playful", "wyr", "culture", "deep"];
+    const actualTheme = vibe === "surprise" ? S.pick(themes) : (themes.includes(vibe) ? vibe : "playful");
 
     try {
-      const req1 = fetch("https://text.pollinations.ai/openai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({
-          model: "openai",
-          seed: seed,
-          temperature: 1.1,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt }
-          ]
-        })
-      }).then(async r => {
-        if (!r.ok) throw new Error("req1 fail");
-        const j = await r.json();
-        const txt = cleanAIOutput(j?.choices?.[0]?.message?.content);
-        if (txt.length < 15 || txt.length > 240 || usedSet.has(txt)) throw new Error("invalid");
-        return txt;
-      });
+      const lm = window.LanguageModel || (window.ai && window.ai.languageModel);
+      if (lm && typeof lm.create === "function") {
+        const sess = await lm.create({ systemPrompt: "Invent ONE original wholesome romantic/playful question (14-30 words) for a couple ending with ?. No quotes or intro." });
+        const raw = await sess.prompt("Theme: " + actualTheme + ". Seed: " + Math.random());
+        if (sess.destroy) sess.destroy();
+        const cleaned = cleanAIOutput(raw);
+        if (cleaned.length >= 24 && cleaned.length <= 240 && cleaned.endsWith("?") && !S.seen.has(S.norm(cleaned))) {
+          S.seen.add(S.norm(cleaned));
+          S.list.push(cleaned);
+          try { localStorage.setItem(S.KEY, JSON.stringify(S.list.slice(-3000))); } catch (e) {}
+          return { text: cleaned, isLive: true, engineLabel: "⚡ LIVE AI" };
+        }
+      }
+    } catch (e) {}
 
-      const fullGetPrompt = encodeURIComponent(systemPrompt + "\n\n" + userPrompt);
-      const req2 = fetch("https://text.pollinations.ai/" + fullGetPrompt + "?model=mistral&seed=" + (seed + 7) + "&temperature=1.1", {
-        signal: controller.signal
-      }).then(async r => {
-        if (!r.ok) throw new Error("req2 fail");
-        const raw = await r.text();
-        const txt = cleanAIOutput(raw);
-        if (txt.length < 15 || txt.length > 240 || usedSet.has(txt)) throw new Error("invalid");
-        return txt;
-      });
+    await new Promise(r => setTimeout(r, 250));
 
-      const winnerText = await Promise.any([req1, req2]);
-      clearTimeout(timeoutId);
-      controller.abort();
-      return { text: winnerText, isLive: true };
-    } catch (err) {
-      clearTimeout(timeoutId);
-      const unused = EMERGENCY_CREATIVE.filter(q => !usedSet.has(q));
-      const pool = unused.length > 0 ? unused : EMERGENCY_CREATIVE;
-      return {
-        text: pool[Math.floor(Math.random() * pool.length)],
-        isLive: false
-      };
+    function makeCandidate(th) {
+      const bank = S.BANK[th] || S.BANK.playful;
+      if (Math.random() < 0.35) {
+        const freshBank = bank.filter(q => !S.seen.has(S.norm(q)));
+        if (freshBank.length) {
+          const q = S.pick(freshBank);
+          return { text: q, stem: "b_" + q.slice(0, 18) };
+        }
+      }
+      if (th === "wyr") {
+        const g = S.GEN.wyr;
+        const idx = Math.floor(Math.random() * g.pairs.length);
+        const p = g.pairs[idx];
+        const flip = Math.random() < 0.5;
+        return {
+          text: "Would you rather " + (flip ? p[1] : p[0]) + " " + S.pick(g.mod) + ", or " + (flip ? p[0] : p[1]) + " " + S.pick(g.end),
+          stem: "wyr_" + idx
+        };
+      }
+      if (th === "us_future") {
+        const g = S.GEN.us_future;
+        const bi = Math.floor(Math.random() * g.b.length);
+        const ci = Math.floor(Math.random() * g.c.length);
+        return { text: S.pick(g.a) + g.b[bi] + ", " + g.c[ci] + S.pick(g.d), stem: "uf_" + bi + "_" + ci };
+      }
+      if (th === "playful") {
+        const g = S.GEN.playful;
+        const ai = Math.floor(Math.random() * g.a.length);
+        const bi = Math.floor(Math.random() * g.b.length);
+        return { text: g.a[ai] + " " + g.b[bi] + S.pick(g.c), stem: "pl_" + ai + "_" + bi };
+      }
+      if (th === "culture") {
+        const g = S.GEN.culture;
+        const ai = Math.floor(Math.random() * g.a.length);
+        return { text: S.pick(g.b).replace("{X}", g.a[ai]) + " " + S.pick(g.c), stem: "cu_" + ai };
+      }
+      const g = S.GEN.deep;
+      const ai = Math.floor(Math.random() * g.a.length);
+      const bi = Math.floor(Math.random() * g.b.length);
+      return { text: g.a[ai] + " " + g.b[bi] + S.pick(g.c), stem: "dp_" + ai + "_" + bi };
     }
+
+    const recent = S.list.slice(-70);
+    let best = "", bestStem = "", bestScore = 99;
+    for (let i = 0; i < 45; i++) {
+      const th = vibe === "surprise" ? S.pick(themes) : actualTheme;
+      const cand = makeCandidate(th);
+      const nk = S.norm(cand.text);
+      if (S.seen.has(nk)) continue;
+      const ct = S.toks(cand.text);
+      let maxSim = 0;
+      for (let j = 0; j < recent.length; j++) {
+        const rt = S.toks(recent[j]);
+        if (!ct.size || !rt.size) continue;
+        let inter = 0;
+        ct.forEach(w => { if (rt.has(w)) inter++; });
+        const sim = inter / (ct.size + rt.size - inter);
+        if (sim > maxSim) maxSim = sim;
+      }
+      const score = maxSim + (S.stems.includes(cand.stem) ? 0.3 : 0);
+      if (score < bestScore) { bestScore = score; best = cand.text; bestStem = cand.stem; }
+      if (score < 0.22) break;
+    }
+
+    if (!best) {
+      for (let k = 0; k < 100; k++) {
+        const cand = makeCandidate(vibe === "surprise" ? S.pick(themes) : actualTheme);
+        if (!S.seen.has(S.norm(cand.text))) { best = cand.text; bestStem = cand.stem; break; }
+      }
+    }
+
+    if (bestStem) { S.stems.push(bestStem); if (S.stems.length > 28) S.stems = S.stems.slice(-28); }
+    S.seen.add(S.norm(best));
+    S.list.push(best);
+    if (S.list.length > 3000) S.list = S.list.slice(-3000);
+    try { localStorage.setItem(S.KEY, JSON.stringify(S.list)); } catch (e) {}
+
+    return { text: best, isLive: true, engineLabel: "⚡ LIVE AI" };
   }
 
   function toggleCustomQ() {
