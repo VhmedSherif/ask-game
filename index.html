@@ -2471,8 +2471,164 @@
     }
     return out;
   }
+  function setupCloudAISystem() {
+    if (window._cloudAIInitialized) return;
+    window._cloudAIInitialized = true;
+    const KEY_S = "askreveal_cloud_api_key_v5", MOD_S = "askreveal_cloud_model_v5", PRM_S = "askreveal_custom_sys_prompt_v5";
+        const DEF_P = "You are an imaginative, warm, witty relationship card-game writer. Invent ONE original, never-before-seen question (14 to 30 words) for two partners playing together. Subtly draw inspiration from their previous round answers when provided without repeating them literally. Avoid generic cliches. Output ONLY the single question ending with ?, no quotes or intro.";
+    const st = document.createElement("style");
+    st.textContent = ".cloud-ai-btn{font-size:.72rem;font-weight:700;padding:5px 10px;border-radius:999px;background:rgba(16,185,129,.16);border:1px solid rgba(16,185,129,.42);color:#a7f3d0;cursor:pointer}.cloud-ai-btn.needs-key{background:rgba(245,158,11,.16);border-color:rgba(245,158,11,.45);color:#fde68a}.cai-overlay{display:none;position:fixed;inset:0;background:rgba(7,11,24,.82);backdrop-filter:blur(8px);z-index:120;justify-content:center;align-items:center;padding:14px}.cai-overlay.open{display:flex}.cai-card{width:100%;max-width:445px;max-height:90dvh;overflow-y:auto;background:#162035;border:1px solid rgba(244,114,182,.38);border-radius:22px;padding:18px;color:#f8fafc;box-shadow:0 24px 60px rgba(0,0,0,.65)}.cai-sec{background:rgba(15,23,42,.7);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;margin-bottom:10px;font-size:.76rem;line-height:1.45}.cai-chip{padding:4px 9px;border-radius:8px;font-size:.72rem;font-weight:700;background:rgba(236,72,153,.16);border:1px solid rgba(236,72,153,.35);color:#f9a8d4;cursor:pointer;display:inline-block;margin:3px 4px 3px 0}";
+    document.head.appendChild(st);
 
-  async function fetchLiveCreativeAI(vibe) {
+    let hBtn = document.getElementById("aiSettingsBtn");
+    if (!hBtn) {
+      const bar = document.querySelector(".header-actions") || document.querySelector(".header");
+      hBtn = document.createElement("button"); hBtn.type = "button"; hBtn.id = "cloudAiHeaderBtn";
+      if (bar) bar.insertBefore(hBtn, bar.firstChild);
+    }
+    hBtn.removeAttribute("onclick");
+    hBtn.addEventListener("click", () => toggleModal(true));
+
+    const modal = document.createElement("div");
+    modal.className = "cai-overlay"; modal.id = "cloudAiModal";
+    modal.innerHTML = '<div class="cai-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b style="font-size:1rem">☁️ Free Cloud AI Model</b><button type="button" class="leave-btn" id="caiCloseBtn" style="display:inline-block">✕</button></div><div class="cai-sec" id="caiStatusBox"></div><div class="cai-sec"><div style="font-weight:700;margin-bottom:4px">Get a 100% Free Key (No Card Needed):</div><div><span class="cai-chip" id="caiGroq">⚡ Groq (gsk_...)</span><span class="cai-chip" id="caiGem">✨ Google AI Studio (AIza...)</span><span class="cai-chip" id="caiOR">🌐 OpenRouter (sk-or-...)</span></div><input type="password" id="caiKeyInput" placeholder="Paste gsk_... or AIza... or sk-or-... key" style="margin:8px 0;padding:10px 12px;font-size:.84rem" /><label style="font-size:.75rem;color:#94a3b8;margin-bottom:4px">System Prompt (editable):</label><textarea id="caiPromptInput" style="min-height:76px;font-size:.78rem;padding:9px 11px;margin-bottom:8px"></textarea><div class="action-row" style="margin-bottom:0"><button type="button" class="btn" id="caiSaveBtn" style="padding:10px;font-size:.84rem">Test & Activate Cloud AI ✨</button><button type="button" class="btn btn-secondary" id="caiClearBtn" style="padding:10px;font-size:.84rem">Reset / Clear</button></div></div></div>';
+    document.body.appendChild(modal);
+    
+  async function fe    const P = "https" + "://", GH = ["api","groq","com"].join("."), GM = ["generativelanguage","googleapis","com"].join("."), OH = ["openrouter","ai"].join("."), PH = ["gen","pollinations","ai"].join(".");
+    document.getElementById("caiGroq").onclick = () => window.open(P + ["console","groq","com"].join(".") + "/keys", "_blank", "noopener");
+    document.getElementById("caiGem").onclick = () => window.open(P + ["aistudio","google","com"].join(".") + "/apikey", "_blank", "noopener");
+    document.getElementById("caiOR").onclick = () => window.open(P + OH + "/keys", "_blank", "noopener");
+    document.getElementById("caiCloseBtn").onclick = () => toggleModal(false);
+    modal.onclick = (e) => { if (e.target === modal) toggleModal(false); };
+
+    const getK = () => { try { return (localStorage.getItem(KEY_S) || "").trim(); } catch (e) { return ""; } };
+    const getP = () => { try { return (localStorage.getItem(PRM_S) || "").trim() || DEF_P; } catch (e) { return DEF_P; } };
+    const prov = (k) => !k ? null : k.startsWith("AIza") ? "gemini" : k.startsWith("sk-or-") ? "openrouter" : k.startsWith("sk_") ? "pollinations" : "groq";
+
+    function syncUI() {
+      const k = getK(), m = (function(){ try { return localStorage.getItem(MOD_S) || ""; } catch(e){ return ""; } })();
+      const box = document.getElementById("caiStatusBox");
+      if (k) {
+        const pn = prov(k).toUpperCase();
+        hBtn.className = "cloud-ai-btn"; hBtn.textContent = "☁️ " + pn + " AI";
+        box.style.color = "#a7f3d0"; box.textContent = "✅ Connected to " + pn + (m ? " (" + m + ")" : "") + " — Live Cloud LLM active!";
+      } else {
+        hBtn.className = "cloud-ai-btn needs-key"; hBtn.textContent = "☁️ Connect AI";
+        box.style.color = "#fde68a"; box.textContent = "Paste a free Groq (gsk_...) or Gemini (AIza...) key below to activate real Cloud LLM:";
+      }
+    }
+    function toggleModal(on) {
+      if (on) { document.getElementById("caiKeyInput").value = getK(); document.getElementById("caiPromptInput").value = getP(); syncUI(); modal.classList.add("open"); }
+      else modal.classList.remove("open");
+    }
+
+    async function pickModel(pv, k, sig) {
+      try { const c = localStorage.getItem(MOD_S); if (c && ((pv === "gemini") === c.startsWith("gemini-"))) return c; } catch (e) {}
+      try {
+        if (pv === "gemini") {
+          const r = await fetch(P + GM + "/v1beta/models?key=" + encodeURIComponent(k), { signal: sig });
+          if (r.ok) {
+            const ms = ((await r.json()).models || []).filter(m => (m.supportedGenerationMethods || []).includes("generateContent") && /gemini/i.test(m.name) && !/tts|image|embed|vision|robot/i.test(m.name));
+            const f = ms.find(m => /3\..*flash/i.test(m.name)) || ms.find(m => /flash/i.test(m.name)) || ms[0];
+            if (f) { const id = f.name.replace(/^models\//, ""); try { localStorage.setItem(MOD_S, id); } catch (e) {} return id; }
+          }
+          return "gemini-2.5-flash";
+        }
+        if (pv === "groq") {
+          const r = await fetch(P + GH + "/openai/v1/models", { headers: { "Authorization": "Bearer " + k }, signal: sig });
+          if (r.ok) {
+            const ids = ((await r.json()).data || []).map(x => x.id).filter(id => id && !/whisper|tts|guard|vision|embed|safeguard/i.test(id));
+            const pref = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "meta-llama/llama-4-scout-17b-16e-instruct", "llama-3.3-70b-versatile"];
+            const hit = pref.find(x => ids.includes(x)) || ids[0];
+            if (hit) { try { localStorage.setItem(MOD_S, hit); } catch (e) {} return hit; }
+          }
+          return "openai/gpt-oss-20b";
+        }
+        if (pv === "openrouter") return "openrouter/auto";
+      } catch (e) {}
+      return "openai";
+    }
+    async function callLLM(k, sys, usr) {
+      const pv = prov(k); if (!pv) return null;
+      const ctrl = new AbortController(), tid = setTimeout(() => ctrl.abort(), 9500);
+      try {
+        const mod = await pickModel(pv, k, ctrl.signal);
+        if (pv === "gemini") {
+          const r = await fetch(P + GM + "/v1beta/models/" + mod + ":generateContent?key=" + encodeURIComponent(k), {
+            method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal,
+            body: JSON.stringify({ systemInstruction: { parts: [{ text: sys }] }, contents: [{ role: "user", parts: [{ text: usr }] }], generationConfig: { temperature: 1.05, maxOutputTokens: 260 } })
+          });
+          clearTimeout(tid);
+          if (!r.ok) { try { localStorage.removeItem(MOD_S); } catch (e) {} return null; }
+          const t = cleanAIOutput((await r.json())?.candidates?.[0]?.content?.parts?.[0]?.text || "");
+          return t ? { text: t, provider: "GEMINI" } : null;
+        }
+        const url = pv === "groq" ? (P + GH + "/openai/v1/chat/completions") : pv === "openrouter" ? (P + OH + "/api/v1/chat/completions") : (P + PH + "/v1/chat/completions");
+        const r = await fetch(url, {
+          method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + k }, signal: ctrl.signal,
+          body: JSON.stringify({ model: mod, temperature: 1.02, max_tokens: 320, messages: [{ role: "system", content: sys }, { role: "user", content: usr }] })
+        });
+        clearTimeout(tid);
+        if (!r.ok) { try { localStorage.removeItem(MOD_S); } catch (e) {} return null; }
+        const t = cleanAIOutput((await r.json())?.choices?.[0]?.message?.content || "");
+        return t ? { text: t, provider: pv.toUpperCase() } : null;
+      } catch (e) { clearTimeout(tid); return null; }
+    }
+
+    document.getElementById("caiSaveBtn").onclick = async () => {
+      const k = document.getElementById("caiKeyInput").value.trim(), p = document.getElementById("caiPromptInput").value.trim() || DEF_P;
+      try { localStorage.setItem(PRM_S, p); } catch (e) {}
+      if (!k) { if (typeof showToast === "function") showToast("Prompt saved! Paste a free Groq or Gemini key to activate Cloud AI.", true); return; }
+      try { localStorage.removeItem(MOD_S); } catch (e) {}
+      const b = document.getElementById("caiSaveBtn"); b.disabled = true; b.textContent = "Testing... ⏳";
+      const out = await callLLM(k, p, "Theme: playful adventure. Invent ONE short question ending with ?.");
+      b.disabled = false; b.textContent = "Test & Activate Cloud AI ✨";
+      if (out && out.text.length >= 15) {
+        try { localStorage.setItem(KEY_S, k); } catch (e) {}
+        syncUI(); toggleModal(false);
+        if (typeof showToast === "function") showToast("✅ " + out.provider + " Cloud AI Connected!");
+      } else if (typeof showToast === "function") showToast("Key check failed—verify your Groq or Gemini key!", true);
+    };
+    document.getElementById("caiClearBtn").onclick = () => {
+      try { localStorage.removeItem(KEY_S); localStorage.removeItem(MOD_S); localStorage.setItem(PRM_S, DEF_P); } catch (e) {}
+      document.getElementById("caiKeyInput").value = ""; document.getElementById("caiPromptInput").value = DEF_P; syncUI();
+      if (typeof showToast === "function") showToast("Reset to defaults ✨");
+    };
+    syncUI();
+    window._cloudAIHelper = { getK, getP, callLLM };
+  }
+  setTimeout(setupCloudAISystem, 0);
+  
+  async function runCloudQuestionCheck(actualTheme, S) {
+    setupCloudAISystem();
+    const h = window._cloudAIHelper, k = h && h.getK();
+    if (!k) return null;
+    const goals = {
+      us_future: "Theme: Romance, building a cozy future together, trips or home.",
+      playful: "Theme: Playful, witty, funny hypothetical adventure or banter.",
+      wyr: "Theme: Creative 'Would you rather...' dilemma starting strictly with 'Would you rather'.",
+      culture: "Theme: Childhood roots, favorite homemade comfort food, family traditions.",
+      deep: "Theme: Emotional closeness, feeling safe, unspoken appreciation, peace of heart."
+    };
+    const pName = typeof getPartnerName === "function" ? getPartnerName() : "Partner";
+    const prev = (typeof roomDoc !== "undefined" && roomDoc && roomDoc.lastRoundSummary) ? ("Previous answers inspiration: " + roomDoc.lastRoundSummary) : "";
+    const avoid = S.list.slice(-12).join(" | ");
+    for (let t = 0; t < 2; t++) {
+      const usr = (goals[actualTheme] || goals.playful) + " Players: " + (typeof myName !== "undefined" ? myName : "Player 1") + " & " + pName + " (use we/us/you). " + prev + " Seed: " + Math.floor(Math.random() * 9999999) + ". Avoid: " + (avoid || "none");
+      const out = await h.callLLM(k, h.getP(), usr);
+      if (out && out.text.length >= 20 && out.text.length <= 260 && out.text.endsWith("?") && !S.seen.has(S.norm(out.text))) {
+        if (actualTheme !== "wyr" || /^would you rather\b/i.test(out.text)) {
+          S.seen.add(S.norm(out.text)); S.list.push(out.text);
+          if (S.list.length > 3000) S.list = S.list.slice(-3000);
+          try { localStorage.setItem(S.KEY, JSON.stringify(S.list)); } catch (e) {}
+          return { text: out.text, isLive: true, engineLabel: "☁️ " + out.provider + " AI" };
+        }
+      }
+    }
+    return null;
+  }
+  
+    tchLiveCreativeAI(vibe) {
     if (!window._arAI) {
       const BANK = {
         us_future: [
@@ -2724,7 +2880,8 @@
 
     const themes = ["us_future", "playful", "wyr", "culture", "deep"];
     const actualTheme = vibe === "surprise" ? S.pick(themes) : (themes.includes(vibe) ? vibe : "playful");
-
+    const cloudRes = await runCloudQuestionCheck(actualTheme, S);
+    if (cloudRes) return cloudRes;
     try {
       const lm = window.LanguageModel || (window.ai && window.ai.languageModel);
       if (lm && typeof lm.create === "function") {
